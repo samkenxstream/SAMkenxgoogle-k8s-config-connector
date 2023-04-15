@@ -27,13 +27,13 @@ func TestAccDataLossPreventionJobTrigger_dlpJobTriggerBasicExample(t *testing.T)
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project":       getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project":       GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckDataLossPreventionJobTriggerDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -90,13 +90,13 @@ func TestAccDataLossPreventionJobTrigger_dlpJobTriggerBigqueryRowLimitExample(t 
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project":       getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project":       GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckDataLossPreventionJobTriggerDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -158,13 +158,13 @@ func TestAccDataLossPreventionJobTrigger_dlpJobTriggerBigqueryRowLimitPercentage
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project":       getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project":       GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckDataLossPreventionJobTriggerDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -222,6 +222,128 @@ resource "google_data_loss_prevention_job_trigger" "bigquery_row_limit_percentag
 `, context)
 }
 
+func TestAccDataLossPreventionJobTrigger_dlpJobTriggerDataCatalogOutputExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"project":       GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
+	}
+
+	VcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    TestAccProviders,
+		CheckDestroy: testAccCheckDataLossPreventionJobTriggerDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataLossPreventionJobTrigger_dlpJobTriggerDataCatalogOutputExample(context),
+			},
+			{
+				ResourceName:            "google_data_loss_prevention_job_trigger.data_catalog_output",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"parent"},
+			},
+		},
+	})
+}
+
+func testAccDataLossPreventionJobTrigger_dlpJobTriggerDataCatalogOutputExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_data_loss_prevention_job_trigger" "data_catalog_output" {
+  parent = "projects/%{project}"
+  description = "Description"
+  display_name = "Displayname"
+
+  triggers {
+    schedule {
+      recurrence_period_duration = "86400s"
+    }
+  }
+
+  inspect_job {
+    inspect_template_name = "fake"
+    actions {
+      publish_findings_to_cloud_data_catalog {
+      }
+    }
+    storage_config {
+      big_query_options {
+        table_reference {
+          project_id = "project"
+          dataset_id = "dataset"
+          table_id = "table_to_scan"
+        }
+        rows_limit_percent = 50
+        sample_method = "RANDOM_START"
+      }
+    }
+  }
+}
+`, context)
+}
+
+func TestAccDataLossPreventionJobTrigger_dlpJobTriggerSccOutputExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"project":       GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
+	}
+
+	VcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    TestAccProviders,
+		CheckDestroy: testAccCheckDataLossPreventionJobTriggerDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataLossPreventionJobTrigger_dlpJobTriggerSccOutputExample(context),
+			},
+			{
+				ResourceName:            "google_data_loss_prevention_job_trigger.scc_output",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"parent"},
+			},
+		},
+	})
+}
+
+func testAccDataLossPreventionJobTrigger_dlpJobTriggerSccOutputExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_data_loss_prevention_job_trigger" "scc_output" {
+  parent = "projects/%{project}"
+  description = "Description"
+  display_name = "Displayname"
+
+  triggers {
+    schedule {
+      recurrence_period_duration = "86400s"
+    }
+  }
+
+  inspect_job {
+    inspect_template_name = "fake"
+    actions {
+      publish_summary_to_cscc {
+      }
+    }
+    storage_config {
+      big_query_options {
+        table_reference {
+          project_id = "project"
+          dataset_id = "dataset"
+          table_id = "table_to_scan"
+        }
+        rows_limit_percent = 50
+        sample_method = "RANDOM_START"
+      }
+    }
+  }
+}
+`, context)
+}
+
 func testAccCheckDataLossPreventionJobTriggerDestroyProducer(t *testing.T) func(s *terraform.State) error {
 	return func(s *terraform.State) error {
 		for name, rs := range s.RootModule().Resources {
@@ -232,7 +354,7 @@ func testAccCheckDataLossPreventionJobTriggerDestroyProducer(t *testing.T) func(
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{DataLossPreventionBasePath}}{{parent}}/jobTriggers/{{name}}")
 			if err != nil {
@@ -245,7 +367,7 @@ func testAccCheckDataLossPreventionJobTriggerDestroyProducer(t *testing.T) func(
 				billingProject = config.BillingProject
 			}
 
-			_, err = sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			_, err = SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err == nil {
 				return fmt.Errorf("DataLossPreventionJobTrigger still exists at %s", url)
 			}

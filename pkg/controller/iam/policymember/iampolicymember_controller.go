@@ -28,7 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/lifecyclehandler"
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/metrics"
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/predicate"
-	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/ratelimiter"
+	kccratelimiter "github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/ratelimiter"
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/resourcewatcher"
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/dcl/conversion"
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/execution"
@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	klog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -86,7 +87,9 @@ func NewReconciler(mgr manager.Manager, provider *tfschema.Provider, smLoader *s
 		config:                     mgr.GetConfig(),
 		immediateReconcileRequests: immediateReconcileRequests,
 		resourceWatcherRoutines:    resourceWatcherRoutines,
+		requeueRateLimiter:         kccratelimiter.RequeueRateLimiter(),
 	}
+
 	return &r, nil
 }
 
@@ -96,7 +99,7 @@ func add(mgr manager.Manager, r *Reconciler) error {
 	_, err := builder.
 		ControllerManagedBy(mgr).
 		Named(controllerName).
-		WithOptions(controller.Options{MaxConcurrentReconciles: k8s.ControllerMaxConcurrentReconciles, RateLimiter: ratelimiter.NewRateLimiter()}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: k8s.ControllerMaxConcurrentReconciles, RateLimiter: kccratelimiter.NewRateLimiter()}).
 		Watches(&source.Channel{Source: r.immediateReconcileRequests}, &handler.EnqueueRequestForObject{}).
 		For(obj, builder.OnlyMetadata, builder.WithPredicates(predicate.UnderlyingResourceOutOfSyncPredicate{})).
 		Build(r)
@@ -118,6 +121,9 @@ type Reconciler struct {
 	// Fields used for triggering reconciliations when dependencies are ready
 	immediateReconcileRequests chan event.GenericEvent
 	resourceWatcherRoutines    *semaphore.Weighted // Used to cap number of goroutines watching unready dependencies
+
+	// rate limit requeues (periodic re-reconciliation), so we don't use the whole rate limit on re-reconciles
+	requeueRateLimiter ratelimiter.RateLimiter
 }
 
 type reconcileContext struct {
@@ -155,9 +161,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 	if requeue {
 		return reconcile.Result{Requeue: true}, nil
 	}
-	jitteredPeriod := jitter.GenerateJitteredReenqueuePeriod(iamv1beta1.IAMPolicyMemberGVK, nil, nil)
-	logger.Info("successfully finished reconcile", "resource", request.NamespacedName, "time to next reconciliation", jitteredPeriod)
-	return reconcile.Result{RequeueAfter: jitteredPeriod}, nil
+
+	jitteredPeriod, err := jitter.GenerateJitteredReenqueuePeriod(iamv1beta1.IAMPolicyMemberGVK, nil, nil, &memberPolicy)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	requeueDelay := r.requeueRateLimiter.When(request)
+	requeueAfter := jitteredPeriod + requeueDelay
+	logger.Info("successfully finished reconcile", "resource", request.NamespacedName, "time to next reconciliation", requeueAfter)
+	return reconcile.Result{RequeueAfter: requeueAfter}, nil
 }
 
 func (r *reconcileContext) doReconcile(policyMember *iamv1beta1.IAMPolicyMember) (requeue bool, err error) {
@@ -177,7 +189,12 @@ func (r *reconcileContext) doReconcile(policyMember *iamv1beta1.IAMPolicyMember)
 				if !errors.Is(err, kcciamclient.NotFoundError) && !k8s.IsReferenceNotFoundError(err) {
 					if unwrappedErr, ok := lifecyclehandler.CausedByUnresolvableDeps(err); ok {
 						logger.Info(unwrappedErr.Error(), "resource", k8s.GetNamespacedName(policyMember))
-						return r.handleUnresolvableDeps(policyMember, unwrappedErr)
+						resource, err := ToK8sResource(policyMember)
+						if err != nil {
+							return false, fmt.Errorf("error converting IAMPolicyMember to k8s resource while handling unresolvable dependencies event: %w", err)
+						}
+						// Requeue resource for reconciliation with exponential backoff applied
+						return true, r.Reconciler.HandleUnresolvableDeps(r.Ctx, resource, unwrappedErr)
 					}
 					return false, r.handleDeleteFailed(policyMember, err)
 				}
@@ -220,7 +237,7 @@ func (r *reconcileContext) update(policyMember *iamv1beta1.IAMPolicyMember) erro
 }
 
 func (r *reconcileContext) handleUpToDate(policyMember *iamv1beta1.IAMPolicyMember) error {
-	resource, err := toK8sResource(policyMember)
+	resource, err := ToK8sResource(policyMember)
 	if err != nil {
 		return fmt.Errorf("error converting IAMPolicyMember to k8s resource while handling %v event: %w", k8s.UpToDate, err)
 	}
@@ -228,7 +245,7 @@ func (r *reconcileContext) handleUpToDate(policyMember *iamv1beta1.IAMPolicyMemb
 }
 
 func (r *reconcileContext) handleUpdateFailed(policyMember *iamv1beta1.IAMPolicyMember, origErr error) error {
-	resource, err := toK8sResource(policyMember)
+	resource, err := ToK8sResource(policyMember)
 	if err != nil {
 		logger.Error(err, "error converting IAMPolicyMember to k8s resource while handling event",
 			"resource", k8s.GetNamespacedName(policyMember), "event", k8s.UpdateFailed)
@@ -238,7 +255,7 @@ func (r *reconcileContext) handleUpdateFailed(policyMember *iamv1beta1.IAMPolicy
 }
 
 func (r *reconcileContext) handleDeleted(policyMember *iamv1beta1.IAMPolicyMember) error {
-	resource, err := toK8sResource(policyMember)
+	resource, err := ToK8sResource(policyMember)
 	if err != nil {
 		return fmt.Errorf("error converting IAMPolicyMember to k8s resource while handling %v event: %w", k8s.Deleted, err)
 	}
@@ -246,7 +263,7 @@ func (r *reconcileContext) handleDeleted(policyMember *iamv1beta1.IAMPolicyMembe
 }
 
 func (r *reconcileContext) handleDeleteFailed(policyMember *iamv1beta1.IAMPolicyMember, origErr error) error {
-	resource, err := toK8sResource(policyMember)
+	resource, err := ToK8sResource(policyMember)
 	if err != nil {
 		logger.Error(err, "error converting IAMPolicyMember to k8s resource while handling event",
 			"resource", k8s.GetNamespacedName(policyMember), "event", k8s.DeleteFailed)
@@ -260,7 +277,7 @@ func (r *Reconciler) supportsImmediateReconciliations() bool {
 }
 
 func (r *reconcileContext) handleUnresolvableDeps(policyMember *v1beta1.IAMPolicyMember, origErr error) (requeue bool, err error) {
-	resource, err := toK8sResource(policyMember)
+	resource, err := ToK8sResource(policyMember)
 	if err != nil {
 		return false, fmt.Errorf("error converting IAMPolicyMember to k8s resource while handling unresolvable dependencies event: %w", err)
 	}
@@ -344,7 +361,7 @@ func isAPIServerUpdateRequired(policyMember *iamv1beta1.IAMPolicyMember) bool {
 	return false
 }
 
-func toK8sResource(policyMember *iamv1beta1.IAMPolicyMember) (*k8s.Resource, error) {
+func ToK8sResource(policyMember *iamv1beta1.IAMPolicyMember) (*k8s.Resource, error) {
 	kcciamclient.SetGVK(policyMember)
 	resource := k8s.Resource{}
 	if err := util.Marshal(policyMember, &resource); err != nil {

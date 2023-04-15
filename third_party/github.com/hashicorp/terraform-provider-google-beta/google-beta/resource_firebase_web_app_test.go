@@ -13,14 +13,14 @@ func TestAccFirebaseWebApp_firebaseWebAppFull(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"org_id":        getTestOrgFromEnv(t),
-		"random_suffix": randString(t, 10),
-		"display_name":  "Display Name N",
+		"org_id":        GetTestOrgFromEnv(t),
+		"random_suffix": RandString(t, 10),
+		"display_name":  "tf-test Display Name N",
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProvidersOiCS,
+		Providers: TestAccProvidersOiCS,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirebaseWebApp_firebaseWebAppFull(context, ""),
@@ -46,6 +46,9 @@ resource "google_project" "default" {
 	project_id = "tf-test%{random_suffix}"
 	name       = "tf-test%{random_suffix}"
 	org_id     = "%{org_id}"
+	labels     = {
+		"firebase" = "enabled"
+	}
 }
 
 resource "google_firebase_project" "default" {
@@ -72,14 +75,14 @@ func TestAccFirebaseWebApp_firebaseWebAppSkipDelete(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project_id":    getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
-		"display_name":  "Display Name N",
+		"project_id":    GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
+		"display_name":  "tf-test Display Name N",
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProvidersOiCS,
 		CheckDestroy: testAccCheckFirebaseWebAppNotDestroyedProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -115,7 +118,7 @@ func testAccCheckFirebaseWebAppNotDestroyedProducer(t *testing.T) func(s *terraf
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{FirebaseBasePath}}{{name}}")
 			if err != nil {
@@ -128,7 +131,7 @@ func testAccCheckFirebaseWebAppNotDestroyedProducer(t *testing.T) func(s *terraf
 				billingProject = config.BillingProject
 			}
 
-			_, err = sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			_, err = SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err != nil {
 				return fmt.Errorf("FirebaseWebApp doesn't exists at %s", url)
 			}

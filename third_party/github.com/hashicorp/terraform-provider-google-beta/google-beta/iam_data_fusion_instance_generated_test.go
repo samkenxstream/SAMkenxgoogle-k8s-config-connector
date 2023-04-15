@@ -25,20 +25,21 @@ func TestAccDataFusionInstanceIamBindingGenerated(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
-		"role":          "roles/viewer",
+		"random_suffix":   RandString(t, 10),
+		"role":            "roles/viewer",
+		"prober_test_run": `options = { prober_test_run = "true" }`,
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataFusionInstanceIamBinding_basicGenerated(context),
 			},
 			{
 				ResourceName:      "google_data_fusion_instance_iam_binding.foo",
-				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s roles/viewer", getTestProjectFromEnv(), getTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s roles/viewer", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -48,7 +49,7 @@ func TestAccDataFusionInstanceIamBindingGenerated(t *testing.T) {
 			},
 			{
 				ResourceName:      "google_data_fusion_instance_iam_binding.foo",
-				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s roles/viewer", getTestProjectFromEnv(), getTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s roles/viewer", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -60,13 +61,14 @@ func TestAccDataFusionInstanceIamMemberGenerated(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
-		"role":          "roles/viewer",
+		"random_suffix":   RandString(t, 10),
+		"role":            "roles/viewer",
+		"prober_test_run": `options = { prober_test_run = "true" }`,
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				// Test Iam Member creation (no update for member, no need to test)
@@ -74,7 +76,7 @@ func TestAccDataFusionInstanceIamMemberGenerated(t *testing.T) {
 			},
 			{
 				ResourceName:      "google_data_fusion_instance_iam_member.foo",
-				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s roles/viewer user:admin@hashicorptest.com", getTestProjectFromEnv(), getTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s roles/viewer user:admin@hashicorptest.com", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -86,20 +88,21 @@ func TestAccDataFusionInstanceIamPolicyGenerated(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
-		"role":          "roles/viewer",
+		"random_suffix":   RandString(t, 10),
+		"role":            "roles/viewer",
+		"prober_test_run": `options = { prober_test_run = "true" }`,
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		Providers: TestAccProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataFusionInstanceIamPolicy_basicGenerated(context),
 			},
 			{
 				ResourceName:      "google_data_fusion_instance_iam_policy.foo",
-				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s", getTestProjectFromEnv(), getTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -108,7 +111,7 @@ func TestAccDataFusionInstanceIamPolicyGenerated(t *testing.T) {
 			},
 			{
 				ResourceName:      "google_data_fusion_instance_iam_policy.foo",
-				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s", getTestProjectFromEnv(), getTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/instances/%s", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf-test-my-instance%s", context["random_suffix"])),
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -122,10 +125,7 @@ resource "google_data_fusion_instance" "basic_instance" {
   name   = "tf-test-my-instance%{random_suffix}"
   region = "us-central1"
   type   = "BASIC"
-  # Mark for testing to avoid service networking connection usage that is not cleaned up
-  options = {
-    prober_test_run = "true"
-  }
+  %{prober_test_run}
 }
 
 resource "google_data_fusion_instance_iam_member" "foo" {
@@ -144,10 +144,7 @@ resource "google_data_fusion_instance" "basic_instance" {
   name   = "tf-test-my-instance%{random_suffix}"
   region = "us-central1"
   type   = "BASIC"
-  # Mark for testing to avoid service networking connection usage that is not cleaned up
-  options = {
-    prober_test_run = "true"
-  }
+  %{prober_test_run}
 }
 
 data "google_iam_policy" "foo" {
@@ -172,10 +169,7 @@ resource "google_data_fusion_instance" "basic_instance" {
   name   = "tf-test-my-instance%{random_suffix}"
   region = "us-central1"
   type   = "BASIC"
-  # Mark for testing to avoid service networking connection usage that is not cleaned up
-  options = {
-    prober_test_run = "true"
-  }
+  %{prober_test_run}
 }
 
 data "google_iam_policy" "foo" {
@@ -196,10 +190,7 @@ resource "google_data_fusion_instance" "basic_instance" {
   name   = "tf-test-my-instance%{random_suffix}"
   region = "us-central1"
   type   = "BASIC"
-  # Mark for testing to avoid service networking connection usage that is not cleaned up
-  options = {
-    prober_test_run = "true"
-  }
+  %{prober_test_run}
 }
 
 resource "google_data_fusion_instance_iam_binding" "foo" {
@@ -218,10 +209,7 @@ resource "google_data_fusion_instance" "basic_instance" {
   name   = "tf-test-my-instance%{random_suffix}"
   region = "us-central1"
   type   = "BASIC"
-  # Mark for testing to avoid service networking connection usage that is not cleaned up
-  options = {
-    prober_test_run = "true"
-  }
+  %{prober_test_run}
 }
 
 resource "google_data_fusion_instance_iam_binding" "foo" {

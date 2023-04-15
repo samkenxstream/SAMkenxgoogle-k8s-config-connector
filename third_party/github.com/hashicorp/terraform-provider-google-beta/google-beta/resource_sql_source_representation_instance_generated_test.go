@@ -27,21 +27,22 @@ func TestAccSQLSourceRepresentationInstance_sqlSourceRepresentationInstanceBasic
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckSQLSourceRepresentationInstanceDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccSQLSourceRepresentationInstance_sqlSourceRepresentationInstanceBasicExample(context),
 			},
 			{
-				ResourceName:      "google_sql_source_representation_instance.instance",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "google_sql_source_representation_instance.instance",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"password"},
 			},
 		},
 	})
@@ -50,11 +51,14 @@ func TestAccSQLSourceRepresentationInstance_sqlSourceRepresentationInstanceBasic
 func testAccSQLSourceRepresentationInstance_sqlSourceRepresentationInstanceBasicExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_sql_source_representation_instance" "instance" {
-  name             = "tf-test-my-instance%{random_suffix}"
-  region           = "us-central1"
-  database_version = "MYSQL_8_0"
-  host             = "10.20.30.40"
-  port             = 3306
+  name               = "tf-test-my-instance%{random_suffix}"
+  region             = "us-central1"
+  database_version   = "MYSQL_8_0"
+  host               = "10.20.30.40"
+  port               = 3306
+  username           = "some-user"
+  password           = "password-for-the-user"
+  dump_file_path     = "gs://replica-bucket/source-database.sql.gz"
 }
 `, context)
 }
@@ -69,7 +73,7 @@ func testAccCheckSQLSourceRepresentationInstanceDestroyProducer(t *testing.T) fu
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{SQLBasePath}}projects/{{project}}/instances/{{name}}")
 			if err != nil {
@@ -82,7 +86,7 @@ func testAccCheckSQLSourceRepresentationInstanceDestroyProducer(t *testing.T) fu
 				billingProject = config.BillingProject
 			}
 
-			_, err = sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			_, err = SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err == nil {
 				return fmt.Errorf("SQLSourceRepresentationInstance still exists at %s", url)
 			}

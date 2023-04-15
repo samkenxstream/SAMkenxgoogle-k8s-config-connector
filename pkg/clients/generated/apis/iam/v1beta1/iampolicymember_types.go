@@ -36,14 +36,11 @@ import (
 )
 
 type PolicymemberCondition struct {
-	/*  */
 	// +optional
 	Description *string `json:"description,omitempty"`
 
-	/*  */
 	Expression string `json:"expression"`
 
-	/*  */
 	Title string `json:"title"`
 }
 
@@ -55,6 +52,10 @@ type PolicymemberMemberFrom struct {
 	/* The IAMServiceAccount to be bound to the role. */
 	// +optional
 	ServiceAccountRef *v1alpha1.IAMResourceRef `json:"serviceAccountRef,omitempty"`
+
+	/* The ServiceIdentity whose service account (i.e., its 'status.email') is to be bound to the role. */
+	// +optional
+	ServiceIdentityRef *v1alpha1.IAMResourceRef `json:"serviceIdentityRef,omitempty"`
 
 	/* The SQLInstance whose service account (i.e. its 'status.serviceAccountEmailAddress') is to be bound to the role. */
 	// +optional
@@ -86,7 +87,8 @@ type IAMPolicyMemberStatus struct {
 	   IAMPolicyMember's current state. */
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
 }
 
 // +genclient

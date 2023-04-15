@@ -25,6 +25,8 @@ var (
 		"scheduling.0.min_node_cpus",
 		"scheduling.0.provisioning_model",
 		"scheduling.0.instance_termination_action",
+		"scheduling.0.max_run_duration",
+		"scheduling.0.maintenance_interval",
 	}
 
 	shieldedInstanceTemplateConfigKeys = []string{
@@ -36,7 +38,7 @@ var (
 
 var REQUIRED_SCRATCH_DISK_SIZE_GB = 375
 
-func resourceComputeInstanceTemplate() *schema.Resource {
+func ResourceComputeInstanceTemplate() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeInstanceTemplateCreate,
 		Read:   resourceComputeInstanceTemplateRead,
@@ -611,6 +613,38 @@ Google Cloud KMS.`,
 							AtLeastOneOf: schedulingInstTemplateKeys,
 							Description:  `Specifies the action GCE should take when SPOT VM is preempted.`,
 						},
+						"max_run_duration": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: `The timeout for new network connections to hosts.`,
+							MaxItems:    1,
+							ForceNew:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"seconds": {
+										Type:     schema.TypeInt,
+										Required: true,
+										ForceNew: true,
+										Description: `Span of time at a resolution of a second.
+Must be from 0 to 315,576,000,000 inclusive.`,
+									},
+									"nanos": {
+										Type:     schema.TypeInt,
+										Optional: true,
+										ForceNew: true,
+										Description: `Span of time that's a fraction of a second at nanosecond
+resolution. Durations less than one second are represented
+with a 0 seconds field and a positive nanos field. Must
+be from 0 to 999,999,999 inclusive.`,
+									},
+								},
+							},
+						},
+						"maintenance_interval": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: `Specifies the frequency of planned maintenance events. The accepted values are: PERIODIC`,
+						},
 					},
 				},
 			},
@@ -798,6 +832,18 @@ Google Cloud KMS.`,
 				Description: `A set of key/value label pairs to assign to instances created from this template,`,
 			},
 
+			"resource_policies": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				ForceNew:    true,
+				MaxItems:    1,
+				Description: `A list of self_links of resource policies to attach to the instance. Currently a max of 1 resource policy is supported.`,
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					DiffSuppressFunc: compareResourceNames,
+				},
+			},
+
 			"reservation_affinity": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -866,7 +912,7 @@ func resourceComputeInstanceTemplateSourceImageCustomizeDiff(_ context.Context, 
 			if err != nil {
 				return err
 			}
-			oldResolved, err := resolveImage(config, project, old.(string), config.userAgent)
+			oldResolved, err := resolveImage(config, project, old.(string), config.UserAgent)
 			if err != nil {
 				return err
 			}
@@ -874,7 +920,7 @@ func resourceComputeInstanceTemplateSourceImageCustomizeDiff(_ context.Context, 
 			if err != nil {
 				return err
 			}
-			newResolved, err := resolveImage(config, project, new.(string), config.userAgent)
+			newResolved, err := resolveImage(config, project, new.(string), config.UserAgent)
 			if err != nil {
 				return err
 			}
@@ -942,7 +988,7 @@ func buildDisks(d *schema.ResourceData, config *Config) ([]*compute.AttachedDisk
 		return nil, err
 	}
 
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return nil, err
 	}
@@ -1037,7 +1083,7 @@ func buildDisks(d *schema.ResourceData, config *Config) ([]*compute.AttachedDisk
 
 			if _, ok := d.GetOk(prefix + ".resource_policies"); ok {
 				// instance template only supports a resource name here (not uri)
-				disk.InitializeParams.ResourcePolicies = convertAndMapStringArr(d.Get(prefix+".resource_policies").([]interface{}), GetResourceNameFromSelfLink)
+				disk.InitializeParams.ResourcePolicies = expandInstanceTemplateResourcePolicies(d, prefix+".resource_policies")
 			}
 		}
 
@@ -1091,9 +1137,13 @@ func expandInstanceTemplateGuestAccelerators(d TerraformResourceData, config *Co
 	return guestAccelerators
 }
 
+func expandInstanceTemplateResourcePolicies(d TerraformResourceData, dataKey string) []string {
+	return convertAndMapStringArr(d.Get(dataKey).([]interface{}), GetResourceNameFromSelfLink)
+}
+
 func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -1130,6 +1180,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
+	resourcePolicies := expandInstanceTemplateResourcePolicies(d, "resource_policies")
 
 	instanceProperties := &compute.InstanceProperties{
 		CanIpForward:               d.Get("can_ip_forward").(bool),
@@ -1148,6 +1199,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		ShieldedInstanceConfig:     expandShieldedVmConfigs(d),
 		AdvancedMachineFeatures:    expandAdvancedMachineFeatures(d),
 		DisplayDevice:              expandDisplayDevice(d),
+		ResourcePolicies:           resourcePolicies,
 		ReservationAffinity:        reservationAffinity,
 	}
 
@@ -1177,7 +1229,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	// Store the ID now
 	d.SetId(fmt.Sprintf("projects/%s/global/instanceTemplates/%s", project, instanceTemplate.Name))
 
-	err = computeOperationWaitTime(config, op, project, "Creating Instance Template", userAgent, d.Timeout(schema.TimeoutCreate))
+	err = ComputeOperationWaitTime(config, op, project, "Creating Instance Template", userAgent, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return err
 	}
@@ -1407,7 +1459,7 @@ func flattenDisks(disks []*compute.AttachedDisk, d *schema.ResourceData, default
 
 func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -1561,6 +1613,12 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if instanceTemplate.Properties.ResourcePolicies != nil {
+		if err = d.Set("resource_policies", instanceTemplate.Properties.ResourcePolicies); err != nil {
+			return fmt.Errorf("Error setting resource_policies: %s", err)
+		}
+	}
+
 	if reservationAffinity := instanceTemplate.Properties.ReservationAffinity; reservationAffinity != nil {
 		if err = d.Set("reservation_affinity", flattenReservationAffinity(reservationAffinity)); err != nil {
 			return fmt.Errorf("Error setting reservation_affinity: %s", err)
@@ -1572,7 +1630,7 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 
 func resourceComputeInstanceTemplateDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -1589,7 +1647,7 @@ func resourceComputeInstanceTemplateDelete(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error deleting instance template: %s", err)
 	}
 
-	err = computeOperationWaitTime(config, op, project, "Deleting Instance Template", userAgent, d.Timeout(schema.TimeoutDelete))
+	err = ComputeOperationWaitTime(config, op, project, "Deleting Instance Template", userAgent, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return err
 	}

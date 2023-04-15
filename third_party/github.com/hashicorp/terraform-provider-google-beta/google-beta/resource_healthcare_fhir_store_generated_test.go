@@ -27,12 +27,12 @@ func TestAccHealthcareFhirStore_healthcareFhirStoreBasicExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckHealthcareFhirStoreDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -84,12 +84,13 @@ func TestAccHealthcareFhirStore_healthcareFhirStoreStreamingConfigExample(t *tes
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"policyChanged": BootstrapPSARoles(t, "service-", "gcp-sa-healthcare", []string{"roles/bigquery.dataEditor", "roles/bigquery.jobUser"}),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckHealthcareFhirStoreDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -155,12 +156,12 @@ func TestAccHealthcareFhirStore_healthcareFhirStoreNotificationConfigExample(t *
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckHealthcareFhirStoreDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -192,17 +193,77 @@ resource "google_healthcare_fhir_store" "default" {
     label1 = "labelvalue1"
   }
 
+  notification_config {
+    pubsub_topic = "${google_pubsub_topic.topic.id}"
+  }
+}
+
+resource "google_pubsub_topic" "topic" {
+  name = "tf-test-fhir-notifications%{random_suffix}"
+}
+
+resource "google_healthcare_dataset" "dataset" {
+  name     = "tf-test-example-dataset%{random_suffix}"
+  location = "us-central1"
+}
+`, context)
+}
+
+func TestAccHealthcareFhirStore_healthcareFhirStoreNotificationConfigsExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"random_suffix": RandString(t, 10),
+	}
+
+	VcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    TestAccProvidersOiCS,
+		CheckDestroy: testAccCheckHealthcareFhirStoreDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccHealthcareFhirStore_healthcareFhirStoreNotificationConfigsExample(context),
+			},
+			{
+				ResourceName:            "google_healthcare_fhir_store.default",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"self_link", "dataset"},
+			},
+		},
+	})
+}
+
+func testAccHealthcareFhirStore_healthcareFhirStoreNotificationConfigsExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_healthcare_fhir_store" "default" {
+  provider = google-beta
+  name     = "tf-test-example-fhir-store%{random_suffix}"
+  dataset  = google_healthcare_dataset.dataset.id
+  version  = "R4"
+
+  enable_update_create          = false
+  disable_referential_integrity = false
+  disable_resource_versioning   = false
+  enable_history_import         = false
+
+  labels = {
+    label1 = "labelvalue1"
+  }
+
   notification_configs {
-    pubsub_topic = "${google_pubsub_topic.topic.id}" 
+    pubsub_topic       = "${google_pubsub_topic.topic.id}"
     send_full_resource = true
   }
 }
 
 resource "google_pubsub_topic" "topic" {
+  provider = google-beta
   name     = "tf-test-fhir-notifications%{random_suffix}"
 }
 
 resource "google_healthcare_dataset" "dataset" {
+  provider = google-beta
   name     = "tf-test-example-dataset%{random_suffix}"
   location = "us-central1"
 }
@@ -219,7 +280,7 @@ func testAccCheckHealthcareFhirStoreDestroyProducer(t *testing.T) func(s *terraf
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{HealthcareBasePath}}{{dataset}}/fhirStores/{{name}}")
 			if err != nil {
@@ -232,7 +293,7 @@ func testAccCheckHealthcareFhirStoreDestroyProducer(t *testing.T) func(s *terraf
 				billingProject = config.BillingProject
 			}
 
-			_, err = sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			_, err = SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err == nil {
 				return fmt.Errorf("HealthcareFhirStore still exists at %s", url)
 			}

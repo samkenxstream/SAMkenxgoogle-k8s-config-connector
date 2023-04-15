@@ -36,7 +36,6 @@ import (
 )
 
 type InstancetemplateAccessConfig struct {
-	/*  */
 	// +optional
 	NatIpRef *v1alpha1.ResourceRef `json:"natIpRef,omitempty"`
 
@@ -118,11 +117,9 @@ type InstancetemplateDisk struct {
 	// +optional
 	Mode *string `json:"mode,omitempty"`
 
-	/*  */
 	// +optional
 	ResourcePolicies []v1alpha1.ResourceRef `json:"resourcePolicies,omitempty"`
 
-	/*  */
 	// +optional
 	SourceDiskRef *v1alpha1.ResourceRef `json:"sourceDiskRef,omitempty"`
 
@@ -137,7 +134,6 @@ type InstancetemplateDisk struct {
 	// +optional
 	SourceImageEncryptionKey *InstancetemplateSourceImageEncryptionKey `json:"sourceImageEncryptionKey,omitempty"`
 
-	/*  */
 	// +optional
 	SourceImageRef *v1alpha1.ResourceRef `json:"sourceImageRef,omitempty"`
 
@@ -158,7 +154,6 @@ type InstancetemplateDisk struct {
 }
 
 type InstancetemplateDiskEncryptionKey struct {
-	/*  */
 	KmsKeyRef v1alpha1.ResourceRef `json:"kmsKeyRef"`
 }
 
@@ -187,16 +182,26 @@ type InstancetemplateIpv6AccessConfig struct {
 	PublicPtrDomainName *string `json:"publicPtrDomainName,omitempty"`
 }
 
+type InstancetemplateMaxRunDuration struct {
+	/* Immutable. Span of time that's a fraction of a second at nanosecond
+	resolution. Durations less than one second are represented
+	with a 0 seconds field and a positive nanos field. Must
+	be from 0 to 999,999,999 inclusive. */
+	// +optional
+	Nanos *int `json:"nanos,omitempty"`
+
+	/* Immutable. Span of time at a resolution of a second.
+	Must be from 0 to 315,576,000,000 inclusive. */
+	Seconds int `json:"seconds"`
+}
+
 type InstancetemplateMetadata struct {
-	/*  */
 	Key string `json:"key"`
 
-	/*  */
 	Value string `json:"value"`
 }
 
 type InstancetemplateNetworkInterface struct {
-	/*  */
 	// +optional
 	AccessConfig []InstancetemplateAccessConfig `json:"accessConfig,omitempty"`
 
@@ -220,7 +225,6 @@ type InstancetemplateNetworkInterface struct {
 	// +optional
 	NetworkIp *string `json:"networkIp,omitempty"`
 
-	/*  */
 	// +optional
 	NetworkRef *v1alpha1.ResourceRef `json:"networkRef,omitempty"`
 
@@ -240,7 +244,6 @@ type InstancetemplateNetworkInterface struct {
 	// +optional
 	SubnetworkProject *string `json:"subnetworkProject,omitempty"`
 
-	/*  */
 	// +optional
 	SubnetworkRef *v1alpha1.ResourceRef `json:"subnetworkRef,omitempty"`
 }
@@ -251,7 +254,6 @@ type InstancetemplateNetworkPerformanceConfig struct {
 }
 
 type InstancetemplateNodeAffinities struct {
-	/*  */
 	// +optional
 	Value *InstancetemplateValue `json:"value,omitempty"`
 }
@@ -274,11 +276,18 @@ type InstancetemplateScheduling struct {
 	// +optional
 	InstanceTerminationAction *string `json:"instanceTerminationAction,omitempty"`
 
+	/* Specifies the frequency of planned maintenance events. The accepted values are: PERIODIC. */
+	// +optional
+	MaintenanceInterval *string `json:"maintenanceInterval,omitempty"`
+
+	/* Immutable. The timeout for new network connections to hosts. */
+	// +optional
+	MaxRunDuration *InstancetemplateMaxRunDuration `json:"maxRunDuration,omitempty"`
+
 	/* Minimum number of cpus for the instance. */
 	// +optional
 	MinNodeCpus *int `json:"minNodeCpus,omitempty"`
 
-	/*  */
 	// +optional
 	NodeAffinities []InstancetemplateNodeAffinities `json:"nodeAffinities,omitempty"`
 
@@ -299,7 +308,6 @@ type InstancetemplateServiceAccount struct {
 	/* Immutable. A list of service scopes. Both OAuth2 URLs and gcloud short names are supported. To allow full access to all Cloud APIs, use the cloud-platform scope. */
 	Scopes []string `json:"scopes"`
 
-	/*  */
 	// +optional
 	ServiceAccountRef *v1alpha1.ResourceRef `json:"serviceAccountRef,omitempty"`
 }
@@ -388,7 +396,6 @@ type ComputeInstanceTemplateSpec struct {
 	/* Immutable. The machine type to create. To create a machine with a custom type (such as extended memory), format the value like custom-VCPUS-MEM_IN_MB like custom-6-20480 for 6 vCPU and 20GB of RAM. */
 	MachineType string `json:"machineType"`
 
-	/*  */
 	// +optional
 	Metadata []InstancetemplateMetadata `json:"metadata,omitempty"`
 
@@ -424,6 +431,9 @@ type ComputeInstanceTemplateSpec struct {
 	// +optional
 	ResourceID *string `json:"resourceID,omitempty"`
 
+	// +optional
+	ResourcePolicies []v1alpha1.ResourceRef `json:"resourcePolicies,omitempty"`
+
 	/* Immutable. The scheduling strategy to use. */
 	// +optional
 	Scheduling *InstancetemplateScheduling `json:"scheduling,omitempty"`
@@ -446,13 +456,20 @@ type ComputeInstanceTemplateStatus struct {
 	   ComputeInstanceTemplate's current state. */
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* The unique fingerprint of the metadata. */
-	MetadataFingerprint string `json:"metadataFingerprint,omitempty"`
+	// +optional
+	MetadataFingerprint *string `json:"metadataFingerprint,omitempty"`
+
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
+
 	/* The URI of the created resource. */
-	SelfLink string `json:"selfLink,omitempty"`
+	// +optional
+	SelfLink *string `json:"selfLink,omitempty"`
+
 	/* The unique fingerprint of the tags. */
-	TagsFingerprint string `json:"tagsFingerprint,omitempty"`
+	// +optional
+	TagsFingerprint *string `json:"tagsFingerprint,omitempty"`
 }
 
 // +genclient

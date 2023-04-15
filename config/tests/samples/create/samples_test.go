@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/kccmanager"
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/controller/registration"
 	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/logging"
+	testgcp "github.com/GoogleCloudPlatform/k8s-config-connector/pkg/test/gcp"
 	testmain "github.com/GoogleCloudPlatform/k8s-config-connector/pkg/test/main"
 
 	"golang.org/x/sync/semaphore"
@@ -83,6 +84,9 @@ var testDisabledList = map[string]bool{
 	"iamworkforcepool":             true,
 	"oidc-workforce-pool-provider": true,
 	"saml-workforce-pool-provider": true,
+	// The following tests require using a Service Account under an allowlisted project (with
+	// label ACCESS_BOUNDARY_TRUSTED_TESTER).
+	"iamaccessboundarypolicy": true,
 	// The samples below requires a custom project with the test billing account
 	// configured, which has a quota limit on the number of projects attached to
 	// it. We should disable redundant sample tests for the same resource.
@@ -92,9 +96,6 @@ var testDisabledList = map[string]bool{
 	"namespace-policy":        true,
 	"service-account-policy":  true,
 	"service-identity-policy": true,
-	// Disable the sample for GameServicesRealm due to service deprecation.
-	// Context can be found at b/240747818.
-	"gameservicesrealm": true,
 
 	// The below tests should stay denylisted until underlying issues are fixed
 	//
@@ -202,11 +203,30 @@ var testDisabledList = map[string]bool{
 	// Disable the test for now while we are figuring out the long term fix with the
 	// service team (b/260214463).
 	"private-service-connection-region-network-endpoint-group": true,
+	// This sample test is failing because configconnector.net GCP org is not allowlisted.
+	// Disable the test until we have fixed b/267510222.
+	"calendar-budget": true,
+	// Temporary list to disable because of billing policy change. To be recovered in b/276980291
+	"anthos-config-management-feature":        true,
+	"anthos-service-mesh-feature":             true,
+	"billing-account-log-bucket":              true,
+	"billing-exclusion":                       true,
+	"cluster-policy":                          true,
+	"external-project-level-policy":           true,
+	"multi-cluster-service-discovery-feature": true,
+	"organization-policy-for-project":         true,
+	"project-exclusion":                       true,
+	"project-in-folder":                       true,
+	"project-in-org":                          true,
+	"project-level-policy":                    true,
+	"project-sink":                            true,
 }
 
 func TestAll(t *testing.T) {
+	project := testgcp.GetDefaultProject(t)
+
 	setup()
-	samples := loadSamplesOntoUnstructs(t, regexp.MustCompile(runTestsRegex))
+	samples := loadSamplesOntoUnstructs(t, regexp.MustCompile(runTestsRegex), project)
 	// Sort the samples in descending order by number of resources. This is an attempt to start the samples that use
 	// a network and have many dependencies sooner since they will likely be the longest running.
 	sortSamplesInDescendingOrderByNumberOfResources(samples)
@@ -231,8 +251,8 @@ func TestAll(t *testing.T) {
 
 			ctx := context.TODO()
 
-			h := NewHarness(t, ctx, mgr)
-			SetupNamespacesAndApplyDefaults(h, []Sample{s})
+			h := NewHarnessWithManager(t, ctx, mgr)
+			SetupNamespacesAndApplyDefaults(h, []Sample{s}, project)
 
 			networkCount := int64(networksInSampleCount(s))
 			if networkCount > 0 {
@@ -249,9 +269,10 @@ func TestAll(t *testing.T) {
 }
 
 func setup() {
+	ctx := context.TODO()
 	flag.Parse()
 	var err error
-	mgr, err = kccmanager.New(unusedManager.GetConfig(), kccmanager.Config{})
+	mgr, err = kccmanager.New(ctx, unusedManager.GetConfig(), kccmanager.Config{})
 	if err != nil {
 		logging.Fatal(err, "error creating new manager")
 	}

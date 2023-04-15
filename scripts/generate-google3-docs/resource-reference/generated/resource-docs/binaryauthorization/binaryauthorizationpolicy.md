@@ -71,6 +71,10 @@
 </tr>
 
 
+<tr>
+<td>{{product_name_short}} Default Average Reconcile Interval In Seconds</td>
+<td>600</td>
+</tr>
 </tbody>
 </table>
 
@@ -563,7 +567,7 @@ spec:
   admissionWhitelistPatterns:
     - namePattern: "gcr.io/google_containers/*"
     - namePattern: "gcr.io/google-containers/*"
-    - namePattern: "k8s.gcr.io/*"
+    - namePattern: "registry.k8s.io/*"
     - namePattern: "gke.gcr.io/*"
     - namePattern: "gcr.io/stackdriver-agents/*"
   defaultAdmissionRule:

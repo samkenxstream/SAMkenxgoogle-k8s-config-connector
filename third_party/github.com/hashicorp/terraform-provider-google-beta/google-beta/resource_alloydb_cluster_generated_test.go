@@ -27,12 +27,12 @@ func TestAccAlloydbCluster_alloydbClusterBasicExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckAlloydbClusterDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -51,18 +51,14 @@ func TestAccAlloydbCluster_alloydbClusterBasicExample(t *testing.T) {
 func testAccAlloydbCluster_alloydbClusterBasicExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_alloydb_cluster" "default" {
-  provider   = google-beta
   cluster_id = "tf-test-alloydb-cluster%{random_suffix}"
   location   = "us-central1"
   network    = "projects/${data.google_project.project.number}/global/networks/${google_compute_network.default.name}"
 }
 
-data "google_project" "project" {
-  provider = google-beta
-}
+data "google_project" "project" {}
 
 resource "google_compute_network" "default" {
-  provider = google-beta
   name = "tf-test-alloydb-cluster%{random_suffix}"
 }
 `, context)
@@ -72,12 +68,12 @@ func TestAccAlloydbCluster_alloydbClusterFullExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckAlloydbClusterDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -96,7 +92,6 @@ func TestAccAlloydbCluster_alloydbClusterFullExample(t *testing.T) {
 func testAccAlloydbCluster_alloydbClusterFullExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_alloydb_cluster" "full" {
-  provider     = google-beta
   cluster_id   = "tf-test-alloydb-cluster-full%{random_suffix}"
   location     = "us-central1"
   network      = "projects/${data.google_project.project.number}/global/networks/${google_compute_network.default.name}"
@@ -136,12 +131,9 @@ resource "google_alloydb_cluster" "full" {
   }
 }
 
-data "google_project" "project" {
-  provider = google-beta
-}
+data "google_project" "project" {}
 
 resource "google_compute_network" "default" {
-  provider = google-beta
   name = "tf-test-alloydb-cluster-full%{random_suffix}"
 }
 `, context)
@@ -157,7 +149,7 @@ func testAccCheckAlloydbClusterDestroyProducer(t *testing.T) func(s *terraform.S
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{AlloydbBasePath}}projects/{{project}}/locations/{{location}}/clusters/{{cluster_id}}")
 			if err != nil {
@@ -170,7 +162,7 @@ func testAccCheckAlloydbClusterDestroyProducer(t *testing.T) func(s *terraform.S
 				billingProject = config.BillingProject
 			}
 
-			_, err = sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			_, err = SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err == nil {
 				return fmt.Errorf("AlloydbCluster still exists at %s", url)
 			}

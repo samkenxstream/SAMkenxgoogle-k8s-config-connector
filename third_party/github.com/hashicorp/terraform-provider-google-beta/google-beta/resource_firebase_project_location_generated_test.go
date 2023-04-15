@@ -24,13 +24,13 @@ func TestAccFirebaseProjectLocation_firebaseProjectLocationBasicExample(t *testi
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"org_id":        getTestOrgFromEnv(t),
-		"random_suffix": randString(t, 10),
+		"org_id":        GetTestOrgFromEnv(t),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProvidersOiCS,
+		Providers: TestAccProvidersOiCS,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFirebaseProjectLocation_firebaseProjectLocationBasicExample(context),
@@ -52,6 +52,10 @@ resource "google_project" "default" {
   project_id = "tf-test%{random_suffix}"
   name       = "tf-test%{random_suffix}"
   org_id     = "%{org_id}"
+
+  labels = {
+    "firebase" = "enabled"
+  }
 }
 
 resource "google_firebase_project" "default" {

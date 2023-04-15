@@ -49,6 +49,10 @@
 </tr>
 
 
+<tr>
+<td>{{product_name_short}} Default Average Reconcile Interval In Seconds</td>
+<td>600</td>
+</tr>
 </tbody>
 </table>
 
@@ -123,6 +127,7 @@ subnetwork:
     name: string
     namespace: string
 tcpEstablishedIdleTimeoutSec: integer
+tcpTimeWaitTimeoutSec: integer
 tcpTransitoryIdleTimeoutSec: integer
 udpIdleTimeoutSec: integer
 ```
@@ -707,6 +712,17 @@ should have NAT enabled. Supported values include:
             <p><code class="apitype">integer</code></p>
             <p>{% verbatim %}Timeout (in seconds) for TCP established connections.
 Defaults to 1200s if not set.{% endverbatim %}</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><code>tcpTimeWaitTimeoutSec</code></p>
+            <p><i>Optional</i></p>
+        </td>
+        <td>
+            <p><code class="apitype">integer</code></p>
+            <p>{% verbatim %}Timeout (in seconds) for TCP connections that are in TIME_WAIT state.
+Defaults to 120s if not set.{% endverbatim %}</p>
         </td>
     </tr>
     <tr>

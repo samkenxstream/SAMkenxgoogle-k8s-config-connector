@@ -81,6 +81,10 @@ Note: Updating <code>spec.resourceRef</code> is not allowed.
 </tr>
 
 
+<tr>
+<td>{{product_name_short}} Default Average Reconcile Interval In Seconds</td>
+<td>600</td>
+</tr>
 </tbody>
 </table>
 
@@ -598,6 +602,9 @@ bindings:
       serviceAccountRef:
         name: string
         namespace: string
+      serviceIdentityRef:
+        name: string
+        namespace: string
       sqlInstanceRef:
         name: string
         namespace: string
@@ -770,6 +777,36 @@ resourceRef:
     <tr>
         <td>
             <p><code>bindings[].members[].memberFrom.serviceAccountRef.namespace</code></p>
+            <p><i>Optional</i></p>
+        </td>
+        <td>
+            <p><code class="apitype">string</code></p>
+            <p>{% verbatim %}{% endverbatim %}</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><code>bindings[].members[].memberFrom.serviceIdentityRef</code></p>
+            <p><i>Optional</i></p>
+        </td>
+        <td>
+            <p><code class="apitype">object</code></p>
+            <p>{% verbatim %}The ServiceIdentity whose service account (i.e., its 'status.email') is to be bound to the role.{% endverbatim %}</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><code>bindings[].members[].memberFrom.serviceIdentityRef.name</code></p>
+            <p><i>Required*</i></p>
+        </td>
+        <td>
+            <p><code class="apitype">string</code></p>
+            <p>{% verbatim %}{% endverbatim %}</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><code>bindings[].members[].memberFrom.serviceIdentityRef.namespace</code></p>
             <p><i>Optional</i></p>
         </td>
         <td>

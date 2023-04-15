@@ -32,7 +32,7 @@ func validateIAMMember(i interface{}, k string) ([]string, []error) {
 		return nil, []error{fmt.Errorf("invalid value for %s (Terraform does not support IAM members for deleted principals)", k)}
 	}
 
-	if matched, err := regexp.MatchString("(.+:.+|allUsers|allAuthenticatedUsers)", v); err != nil {
+	if matched, err := regexp.MatchString("(.+:.+|projectOwners|projectReaders|projectWriters|allUsers|allAuthenticatedUsers)", v); err != nil {
 		return nil, []error{fmt.Errorf("error validating %s: %v", k, err)}
 	} else if !matched {
 		return nil, []error{fmt.Errorf("invalid value for %s (IAM members must have one of the values outlined here: https://cloud.google.com/billing/docs/reference/rest/v1/Policy#Binding)", k)}
@@ -216,8 +216,8 @@ func resourceIamMemberCreate(newUpdaterFunc newResourceIamUpdaterFunc, enableBat
 		memberBind := getResourceIamMember(d)
 		modifyF := func(ep *cloudresourcemanager.Policy) error {
 			// Merge the bindings together
-			ep.Bindings = mergeBindings(append(ep.Bindings, memberBind))
-			ep.Version = iamPolicyVersion
+			ep.Bindings = MergeBindings(append(ep.Bindings, memberBind))
+			ep.Version = IamPolicyVersion
 			return nil
 		}
 		if enableBatching {

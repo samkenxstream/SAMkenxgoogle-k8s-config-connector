@@ -61,6 +61,24 @@ type NodegroupMaintenanceWindow struct {
 	StartTime string `json:"startTime"`
 }
 
+type NodegroupProjectMap struct {
+	/* The key of this project config in the parent map. */
+	IdRef v1alpha1.ResourceRef `json:"idRef"`
+
+	/* The project id/number should be the same as the key of this project
+	config in the project map. */
+	ProjectIdRef v1alpha1.ResourceRef `json:"projectIdRef"`
+}
+
+type NodegroupShareSettings struct {
+	/* Immutable. A map of project id and project config. This is only valid when shareType's value is SPECIFIC_PROJECTS. */
+	// +optional
+	ProjectMap []NodegroupProjectMap `json:"projectMap,omitempty"`
+
+	/* Immutable. Node group sharing type. Possible values: ["ORGANIZATION", "SPECIFIC_PROJECTS", "LOCAL"]. */
+	ShareType string `json:"shareType"`
+}
+
 type ComputeNodeGroupSpec struct {
 	/* Immutable. If you use sole-tenant nodes for your workloads, you can use the node
 	group autoscaler to automatically manage the sizes of your node groups. */
@@ -90,6 +108,10 @@ type ComputeNodeGroupSpec struct {
 	// +optional
 	ResourceID *string `json:"resourceID,omitempty"`
 
+	/* Immutable. Share settings for the node group. */
+	// +optional
+	ShareSettings *NodegroupShareSettings `json:"shareSettings,omitempty"`
+
 	/* Immutable. The total number of nodes in the node group. One of 'initial_size' or 'size' must be specified. */
 	// +optional
 	Size *int `json:"size,omitempty"`
@@ -103,11 +125,15 @@ type ComputeNodeGroupStatus struct {
 	   ComputeNodeGroup's current state. */
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* Creation timestamp in RFC3339 text format. */
-	CreationTimestamp string `json:"creationTimestamp,omitempty"`
+	// +optional
+	CreationTimestamp *string `json:"creationTimestamp,omitempty"`
+
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
-	/*  */
-	SelfLink string `json:"selfLink,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
+
+	// +optional
+	SelfLink *string `json:"selfLink,omitempty"`
 }
 
 // +genclient

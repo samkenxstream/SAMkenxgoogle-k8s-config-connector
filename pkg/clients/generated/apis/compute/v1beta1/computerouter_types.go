@@ -74,11 +74,16 @@ type RouterBgp struct {
 	will have the same local ASN. */
 	Asn int `json:"asn"`
 
-	/* The interval in seconds between BGP keepalive messages that are sent to the peer.
-	Hold time is three times the interval at which keepalive messages are sent, and the hold time is the
-	maximum number of seconds allowed to elapse between successive keepalive messages that BGP receives from a peer.
-	BGP will use the smaller of either the local hold time value or the peer's hold time value as the hold time for
-	the BGP connection between the two peers. If set, this value must be between 20 and 60. The default is 20. */
+	/* The interval in seconds between BGP keepalive messages that are sent
+	to the peer. Hold time is three times the interval at which keepalive
+	messages are sent, and the hold time is the maximum number of seconds
+	allowed to elapse between successive keepalive messages that BGP
+	receives from a peer.
+
+	BGP will use the smaller of either the local hold time value or the
+	peer's hold time value as the hold time for the BGP connection
+	between the two peers. If set, this value must be between 20 and 60.
+	The default is 20. */
 	// +optional
 	KeepaliveInterval *int `json:"keepaliveInterval,omitempty"`
 }
@@ -92,10 +97,8 @@ type ComputeRouterSpec struct {
 	// +optional
 	Description *string `json:"description,omitempty"`
 
-	/* Immutable. Field to indicate if a router is dedicated to use with encrypted
-	Interconnect Attachment (IPsec-encrypted Cloud Interconnect feature).
-
-	Not currently available publicly. */
+	/* Immutable. Indicates if a router is dedicated for use with encrypted VLAN
+	attachments (interconnectAttachments). */
 	// +optional
 	EncryptedInterconnectRouter *bool `json:"encryptedInterconnectRouter,omitempty"`
 
@@ -115,11 +118,15 @@ type ComputeRouterStatus struct {
 	   ComputeRouter's current state. */
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* Creation timestamp in RFC3339 text format. */
-	CreationTimestamp string `json:"creationTimestamp,omitempty"`
+	// +optional
+	CreationTimestamp *string `json:"creationTimestamp,omitempty"`
+
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
-	/*  */
-	SelfLink string `json:"selfLink,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
+
+	// +optional
+	SelfLink *string `json:"selfLink,omitempty"`
 }
 
 // +genclient

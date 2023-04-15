@@ -16,14 +16,14 @@ func TestAccEventarcChannel_basic(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"region":        getTestRegionFromEnv(),
-		"project_name":  getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
+		"region":        GetTestRegionFromEnv(),
+		"project_name":  GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckEventarcChannelDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -41,22 +41,22 @@ func TestAccEventarcChannel_basic(t *testing.T) {
 func TestAccEventarcChannel_cryptoKeyUpdate(t *testing.T) {
 	t.Parallel()
 
-	region := getTestRegionFromEnv()
-	key1 := BootstrapKMSKeyWithPurposeInLocationAndName(t, "ENCRYPT_DECRYPT", region, "tf-bootstrap-key1")
-	key2 := BootstrapKMSKeyWithPurposeInLocationAndName(t, "ENCRYPT_DECRYPT", region, "tf-bootstrap-key2")
+	region := GetTestRegionFromEnv()
+	key1 := BootstrapKMSKeyWithPurposeInLocationAndName(t, "ENCRYPT_DECRYPT", region, "tf-bootstrap-eventarc-channel-key1")
+	key2 := BootstrapKMSKeyWithPurposeInLocationAndName(t, "ENCRYPT_DECRYPT", region, "tf-bootstrap-eventarc-channel-key2")
 
 	context := map[string]interface{}{
 		"region":        region,
-		"project_name":  getTestProjectFromEnv(),
+		"project_name":  GetTestProjectFromEnv(),
 		"key_ring":      GetResourceNameFromSelfLink(key1.KeyRing.Name),
 		"key1":          GetResourceNameFromSelfLink(key1.CryptoKey.Name),
 		"key2":          GetResourceNameFromSelfLink(key2.CryptoKey.Name),
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckEventarcChannelDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -110,13 +110,11 @@ data "google_kms_crypto_key" "key1" {
 }
 
   
-resource "google_kms_crypto_key_iam_binding" "key1_binding" {
+resource "google_kms_crypto_key_iam_member" "key1_member" {
 	crypto_key_id = data.google_kms_crypto_key.key1.id
 	role      = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
 
-	members = [
-	"serviceAccount:service-${data.google_project.test_project.number}@gcp-sa-eventarc.iam.gserviceaccount.com",
-	]
+	member = "serviceAccount:service-${data.google_project.test_project.number}@gcp-sa-eventarc.iam.gserviceaccount.com"
 }
 
 resource "google_eventarc_channel" "primary" {
@@ -124,7 +122,7 @@ resource "google_eventarc_channel" "primary" {
 	name     = "tf-test-name%{random_suffix}"
 	crypto_key_name =  data.google_kms_crypto_key.key1.id
 	third_party_provider = "projects/${data.google_project.test_project.project_id}/locations/%{region}/providers/datadog"
-	depends_on = [google_kms_crypto_key_iam_binding.key1_binding]
+	depends_on = [google_kms_crypto_key_iam_member.key1_member]
 }
 `, context)
 }
@@ -145,13 +143,11 @@ data "google_kms_crypto_key" "key2" {
 	key_ring = data.google_kms_key_ring.test_key_ring.id
 }
 
-resource "google_kms_crypto_key_iam_binding" "key2_binding" {
+resource "google_kms_crypto_key_iam_member" "key2_member" {
 	crypto_key_id = data.google_kms_crypto_key.key2.id
 	role      = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
 	
-	members = [
-	"serviceAccount:service-${data.google_project.test_project.number}@gcp-sa-eventarc.iam.gserviceaccount.com",
-	]
+	member = "serviceAccount:service-${data.google_project.test_project.number}@gcp-sa-eventarc.iam.gserviceaccount.com"
 }
 
 resource "google_eventarc_channel" "primary" {
@@ -159,7 +155,7 @@ resource "google_eventarc_channel" "primary" {
 	name     = "tf-test-name%{random_suffix}"
 	crypto_key_name= data.google_kms_crypto_key.key2.id
 	third_party_provider = "projects/${data.google_project.test_project.project_id}/locations/%{region}/providers/datadog"
-	depends_on = [google_kms_crypto_key_iam_binding.key2_binding]
+	depends_on = [google_kms_crypto_key_iam_member.key2_member]
 }
 `, context)
 }
@@ -174,7 +170,7 @@ func testAccCheckEventarcChannelDestroyProducer(t *testing.T) func(s *terraform.
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			billingProject := ""
 			if config.BillingProject != "" {
@@ -195,7 +191,7 @@ func testAccCheckEventarcChannelDestroyProducer(t *testing.T) func(s *terraform.
 				UpdateTime:         dcl.StringOrNil(rs.Primary.Attributes["update_time"]),
 			}
 
-			client := NewDCLEventarcClient(config, config.userAgent, billingProject, 0)
+			client := NewDCLEventarcClient(config, config.UserAgent, billingProject, 0)
 			_, err := client.GetChannel(context.Background(), obj)
 			if err == nil {
 				return fmt.Errorf("google_eventarc_channel still exists %v", obj)

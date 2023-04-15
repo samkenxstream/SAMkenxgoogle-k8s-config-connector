@@ -27,15 +27,16 @@ func TestAccFirebaseAndroidApp_firebaseAndroidAppBasicExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"org_id":        getTestOrgFromEnv(t),
-		"project_id":    getTestProjectFromEnv(),
-		"package_name":  "android.package.app" + randString(t, 4),
-		"random_suffix": randString(t, 10),
+		"org_id":        GetTestOrgFromEnv(t),
+		"project_id":    GetTestProjectFromEnv(),
+		"package_name":  "android.package.app" + RandString(t, 4),
+		"display_name":  "tf-test Display Name Basic",
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProvidersOiCS,
 		CheckDestroy: testAccCheckFirebaseAndroidAppDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -45,7 +46,7 @@ func TestAccFirebaseAndroidApp_firebaseAndroidAppBasicExample(t *testing.T) {
 				ResourceName:            "google_firebase_android_app.basic",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"deletion_policy", "project"},
+				ImportStateVerifyIgnore: []string{"project", "deletion_policy"},
 			},
 		},
 	})
@@ -56,7 +57,7 @@ func testAccFirebaseAndroidApp_firebaseAndroidAppBasicExample(context map[string
 resource "google_firebase_android_app" "basic" {
   provider = google-beta
   project = "%{project_id}"
-  display_name = "Display Name Basic%{random_suffix}"
+  display_name = "%{display_name}"
   package_name = "%{package_name}"
   sha1_hashes = ["2145bdf698b8715039bd0e83f2069bed435ac21c"]
   sha256_hashes = ["2145bdf698b8715039bd0e83f2069bed435ac21ca1b2c3d4e5f6123456789abc"]
@@ -74,7 +75,7 @@ func testAccCheckFirebaseAndroidAppDestroyProducer(t *testing.T) func(s *terrafo
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{FirebaseBasePath}}{{name}}")
 			if err != nil {
@@ -87,7 +88,7 @@ func testAccCheckFirebaseAndroidAppDestroyProducer(t *testing.T) func(s *terrafo
 				billingProject = config.BillingProject
 			}
 
-			_, err = sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			_, err = SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err == nil {
 				return fmt.Errorf("FirebaseAndroidApp still exists at %s", url)
 			}

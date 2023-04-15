@@ -25,7 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceVertexAIFeaturestoreEntitytypeFeature() *schema.Resource {
+func ResourceVertexAIFeaturestoreEntitytypeFeature() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVertexAIFeaturestoreEntitytypeFeatureCreate,
 		Read:   resourceVertexAIFeaturestoreEntitytypeFeatureRead,
@@ -52,6 +52,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeature() *schema.Resource {
 			"value_type": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: `Type of Feature value. Immutable. https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.featurestores.entityTypes.features#ValueType`,
 			},
 			"description": {
@@ -94,7 +95,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeature() *schema.Resource {
 func resourceVertexAIFeaturestoreEntitytypeFeatureCreate(d *schema.ResourceData, meta interface{}) error {
 	var project string
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -141,7 +142,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureCreate(d *schema.ResourceData,
 			}
 		}
 	}
-	res, err := sendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
+	res, err := SendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return fmt.Errorf("Error creating FeaturestoreEntitytypeFeature: %s", err)
 	}
@@ -156,7 +157,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureCreate(d *schema.ResourceData,
 	// Use the resource in the operation response to populate
 	// identity fields and d.Id() before read
 	var opRes map[string]interface{}
-	err = vertexAIOperationWaitTimeWithResponse(
+	err = VertexAIOperationWaitTimeWithResponse(
 		config, res, &opRes, project, "Creating FeaturestoreEntitytypeFeature", userAgent,
 		d.Timeout(schema.TimeoutCreate))
 	if err != nil {
@@ -180,7 +181,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureCreate(d *schema.ResourceData,
 
 func resourceVertexAIFeaturestoreEntitytypeFeatureRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -197,7 +198,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureRead(d *schema.ResourceData, m
 		billingProject = bp
 	}
 
-	res, err := sendRequest(config, "GET", billingProject, url, userAgent, nil)
+	res, err := SendRequest(config, "GET", billingProject, url, userAgent, nil)
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("VertexAIFeaturestoreEntitytypeFeature %q", d.Id()))
 	}
@@ -223,7 +224,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureRead(d *schema.ResourceData, m
 
 func resourceVertexAIFeaturestoreEntitytypeFeatureUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -243,12 +244,6 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureUpdate(d *schema.ResourceData,
 	} else if v, ok := d.GetOkExists("description"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, descriptionProp)) {
 		obj["description"] = descriptionProp
 	}
-	valueTypeProp, err := expandVertexAIFeaturestoreEntitytypeFeatureValueType(d.Get("value_type"), d, config)
-	if err != nil {
-		return err
-	} else if v, ok := d.GetOkExists("value_type"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, valueTypeProp)) {
-		obj["valueType"] = valueTypeProp
-	}
 
 	url, err := replaceVars(d, config, "{{VertexAIBasePath}}{{entitytype}}/features/{{name}}")
 	if err != nil {
@@ -265,10 +260,6 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureUpdate(d *schema.ResourceData,
 	if d.HasChange("description") {
 		updateMask = append(updateMask, "description")
 	}
-
-	if d.HasChange("value_type") {
-		updateMask = append(updateMask, "valueType")
-	}
 	// updateMask is a URL parameter but not present in the schema, so replaceVars
 	// won't set it
 	url, err = addQueryParams(url, map[string]string{"updateMask": strings.Join(updateMask, ",")})
@@ -281,7 +272,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureUpdate(d *schema.ResourceData,
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
+	res, err := SendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
 
 	if err != nil {
 		return fmt.Errorf("Error updating FeaturestoreEntitytypeFeature %q: %s", d.Id(), err)
@@ -295,7 +286,7 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureUpdate(d *schema.ResourceData,
 func resourceVertexAIFeaturestoreEntitytypeFeatureDelete(d *schema.ResourceData, meta interface{}) error {
 	var project string
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -324,12 +315,12 @@ func resourceVertexAIFeaturestoreEntitytypeFeatureDelete(d *schema.ResourceData,
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
+	res, err := SendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return handleNotFoundError(err, d, "FeaturestoreEntitytypeFeature")
 	}
 
-	err = vertexAIOperationWaitTime(
+	err = VertexAIOperationWaitTime(
 		config, res, project, "Deleting FeaturestoreEntitytypeFeature", userAgent,
 		d.Timeout(schema.TimeoutDelete))
 

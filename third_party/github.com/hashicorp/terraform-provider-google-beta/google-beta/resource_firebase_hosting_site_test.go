@@ -10,14 +10,14 @@ func TestAccFirebaseHostingSite_firebasehostingSiteUpdate(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project_id":    getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project_id":    GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 		"site_id":       "tf-test-site-update-app",
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProvidersOiCS,
 		CheckDestroy: testAccCheckFirebaseHostingSiteDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -47,7 +47,7 @@ func testAccFirebaseHostingSite_firebasehostingSiteBeforeUpdate(context map[stri
 resource "google_firebase_web_app" "before" {
   provider = google-beta
   project  = "%{project_id}"
-  display_name = "Test web app before for Firebase Hosting"
+  display_name = "tf-test Test web app before for Firebase Hosting"
   deletion_policy = "DELETE"
 }
 
@@ -65,7 +65,7 @@ func testAccFirebaseHostingSite_firebasehostingSiteAfterUpdate(context map[strin
 resource "google_firebase_web_app" "after" {
   provider = google-beta
   project  = "%{project_id}"
-  display_name = "Test web app after for Firebase Hosting"
+  display_name = "tf-test Test web app after for Firebase Hosting"
   deletion_policy = "DELETE"
 }
 

@@ -15,6 +15,7 @@
 package google
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -24,20 +25,32 @@ func TestAccBigqueryDatapolicyDataPolicyIamBindingGenerated(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 		"role":          "roles/viewer",
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProvidersOiCS,
+		Providers: TestAccProvidersOiCS,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccBigqueryDatapolicyDataPolicyIamBinding_basicGenerated(context),
 			},
 			{
+				ResourceName:      "google_bigquery_datapolicy_data_policy_iam_binding.foo",
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/dataPolicies/%s roles/viewer", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf_test_data_policy%s", context["random_suffix"])),
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				// Test Iam Binding update
 				Config: testAccBigqueryDatapolicyDataPolicyIamBinding_updateGenerated(context),
+			},
+			{
+				ResourceName:      "google_bigquery_datapolicy_data_policy_iam_binding.foo",
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/dataPolicies/%s roles/viewer", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf_test_data_policy%s", context["random_suffix"])),
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -47,17 +60,23 @@ func TestAccBigqueryDatapolicyDataPolicyIamMemberGenerated(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 		"role":          "roles/viewer",
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProvidersOiCS,
+		Providers: TestAccProvidersOiCS,
 		Steps: []resource.TestStep{
 			{
 				// Test Iam Member creation (no update for member, no need to test)
 				Config: testAccBigqueryDatapolicyDataPolicyIamMember_basicGenerated(context),
+			},
+			{
+				ResourceName:      "google_bigquery_datapolicy_data_policy_iam_member.foo",
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/dataPolicies/%s roles/viewer user:admin@hashicorptest.com", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf_test_data_policy%s", context["random_suffix"])),
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -67,19 +86,31 @@ func TestAccBigqueryDatapolicyDataPolicyIamPolicyGenerated(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"random_suffix": randString(t, 10),
+		"random_suffix": RandString(t, 10),
 		"role":          "roles/viewer",
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProvidersOiCS,
+		Providers: TestAccProvidersOiCS,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccBigqueryDatapolicyDataPolicyIamPolicy_basicGenerated(context),
 			},
 			{
+				ResourceName:      "google_bigquery_datapolicy_data_policy_iam_policy.foo",
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/dataPolicies/%s", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf_test_data_policy%s", context["random_suffix"])),
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccBigqueryDatapolicyDataPolicyIamPolicy_emptyBinding(context),
+			},
+			{
+				ResourceName:      "google_bigquery_datapolicy_data_policy_iam_policy.foo",
+				ImportStateId:     fmt.Sprintf("projects/%s/locations/%s/dataPolicies/%s", GetTestProjectFromEnv(), GetTestRegionFromEnv(), fmt.Sprintf("tf_test_data_policy%s", context["random_suffix"])),
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

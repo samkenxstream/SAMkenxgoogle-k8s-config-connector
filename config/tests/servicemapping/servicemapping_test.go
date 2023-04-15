@@ -410,6 +410,16 @@ func validateTypeConfigGVK(t *testing.T, rc v1alpha1.ResourceConfig, ref v1alpha
 			Version: "v1beta1",
 			Kind:    "CertificateManagerCertificateMap",
 		},
+		{
+			Group:   "cloudbuild.cnrm.cloud.google.com",
+			Version: "v1beta1",
+			Kind:    "CloudBuildGithubEnterpriseConfig",
+		},
+		{
+			Group:   "cloudbuild.cnrm.cloud.google.com",
+			Version: "v1beta1",
+			Kind:    "CloudBuildBitbucketServerConfig",
+		},
 	}
 	for _, g := range ignoredGVKList {
 		if gvk == g {
@@ -893,6 +903,47 @@ func assertAllHaveSameResourceIDConfigs(t *testing.T, kind string, rcs []v1alpha
 	for _, rc := range rcs {
 		if rc.ResourceID.TargetField != targetField || rc.ResourceID.ValueTemplate != valueTemplate {
 			t.Fatalf("not all ResourceConfigs of kind %v have the same value for resourceID.targetField or resourceID.valueTemplate", kind)
+		}
+	}
+}
+
+func TestVersionForKindsWithMultipleResourceConfigs(t *testing.T) {
+	t.Parallel()
+	serviceMappings := testservicemappingloader.New(t).GetServiceMappings()
+	for _, sm := range serviceMappings {
+		sm := sm
+		t.Run(sm.Name, func(t *testing.T) {
+			t.Parallel()
+			kindToRCs := make(map[string][]v1alpha1.ResourceConfig)
+			for _, rc := range sm.Spec.Resources {
+				kindToRCs[rc.Kind] = append(kindToRCs[rc.Kind], rc)
+			}
+			for kind, rcs := range kindToRCs {
+				if len(rcs) < 2 {
+					continue
+				}
+				kind := kind
+				rcs := rcs
+				t.Run(kind, func(t *testing.T) {
+					t.Parallel()
+					assertAllHaveSameVersion(t, kind, rcs, &sm)
+				})
+			}
+		})
+	}
+}
+
+func assertAllHaveSameVersion(t *testing.T, kind string, rcs []v1alpha1.ResourceConfig, sm *v1alpha1.ServiceMapping) {
+	t.Helper()
+	if len(rcs) == 0 {
+		return
+	}
+
+	version := sm.GetVersionFor(&rcs[0])
+
+	for _, rc := range rcs {
+		if newVersion := sm.GetVersionFor(&rc); newVersion != version {
+			t.Fatalf("ResourceConfigs of kind %v have more than one version: %v, %v", kind, version, newVersion)
 		}
 	}
 }

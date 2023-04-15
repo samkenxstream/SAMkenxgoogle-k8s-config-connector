@@ -84,6 +84,15 @@ var (
 		"cluster_config.0.software_config.0.optional_components",
 	}
 
+	dataprocMetricConfigKeys = []string{
+		"cluster_config.0.dataproc_metric_config.0.metrics",
+	}
+
+	metricKeys = []string{
+		"cluster_config.0.dataproc_metric_config.0.metrics.0.metric_source",
+		"cluster_config.0.dataproc_metric_config.0.metrics.0.metric_overrides",
+	}
+
 	clusterConfigKeys = []string{
 		"cluster_config.0.staging_bucket",
 		"cluster_config.0.temp_bucket",
@@ -99,6 +108,7 @@ var (
 		"cluster_config.0.metastore_config",
 		"cluster_config.0.lifecycle_config",
 		"cluster_config.0.endpoint_config",
+		"cluster_config.0.dataproc_metric_config",
 	}
 )
 
@@ -135,7 +145,7 @@ func resourceDataprocPropertyDiffSuppress(k, old, new string, d *schema.Resource
 	return false
 }
 
-func resourceDataprocCluster() *schema.Resource {
+func ResourceDataprocCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDataprocClusterCreate,
 		Read:   resourceDataprocClusterRead,
@@ -1086,11 +1096,51 @@ by Dataproc`,
 								},
 							},
 						},
+
+						"dataproc_metric_config": {
+							Type:         schema.TypeList,
+							Optional:     true,
+							MaxItems:     1,
+							Description:  `The config for Dataproc metrics.`,
+							AtLeastOneOf: clusterConfigKeys,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"metrics": {
+										Type:        schema.TypeList,
+										Required:    true,
+										Description: `Metrics sources to enable.`,
+										Elem:        metricsSchema(),
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 		},
 		UseJSONNumber: true,
+	}
+}
+
+// We need to pull metrics' schema out so we can use it to make a set hash func
+func metricsSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"metric_source": {
+				Type:         schema.TypeString,
+				ForceNew:     true,
+				Required:     true,
+				ValidateFunc: validation.StringInSlice([]string{"MONITORING_AGENT_DEFAULTS", "HDFS", "SPARK", "YARN", "SPARK_HISTORY_SERVER", "HIVESERVER2"}, false),
+				Description:  `A source for the collection of Dataproc OSS metrics (see [available OSS metrics] (https://cloud.google.com//dataproc/docs/guides/monitoring#available_oss_metrics)).`,
+			},
+			"metric_overrides": {
+				Type:        schema.TypeSet,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Optional:    true,
+				ForceNew:    true,
+				Description: `Specify one or more [available OSS metrics] (https://cloud.google.com/dataproc/docs/guides/monitoring#available_oss_metrics) to collect.`,
+			},
+		},
 	}
 }
 
@@ -1104,6 +1154,8 @@ func instanceConfigSchema(parent string) *schema.Schema {
 		"cluster_config.0." + parent + ".0.accelerators",
 	}
 
+	masterConfig := strings.Contains(parent, "master")
+
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Optional:     true,
@@ -1116,6 +1168,7 @@ func instanceConfigSchema(parent string) *schema.Schema {
 				"num_instances": {
 					Type:         schema.TypeInt,
 					Optional:     true,
+					ForceNew:     masterConfig,
 					Computed:     true,
 					Description:  `Specifies the number of master/worker nodes to create. If not specified, GCP will default to a predetermined computed value.`,
 					AtLeastOneOf: instanceConfigKeys,
@@ -1243,7 +1296,7 @@ func acceleratorsSchema() *schema.Resource {
 
 func resourceDataprocClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -1544,6 +1597,10 @@ func expandClusterConfig(d *schema.ResourceData, config *Config) (*dataproc.Clus
 		conf.EndpointConfig = expandEndpointConfig(cfg)
 	}
 
+	if cfg, ok := configOptions(d, "cluster_config.0.dataproc_metric_config"); ok {
+		conf.DataprocMetricConfig = expandDataprocMetricConfig(cfg)
+	}
+
 	if cfg, ok := configOptions(d, "cluster_config.0.master_config"); ok {
 		log.Println("[INFO] got master_config")
 		conf.MasterConfig = expandInstanceGroupConfig(cfg)
@@ -1762,6 +1819,23 @@ func expandEndpointConfig(cfg map[string]interface{}) *dataproc.EndpointConfig {
 	return conf
 }
 
+func expandDataprocMetricConfig(cfg map[string]interface{}) *dataproc.DataprocMetricConfig {
+	conf := &dataproc.DataprocMetricConfig{}
+	metricsConfigs := cfg["metrics"].([]interface{})
+	metricsSet := make([]*dataproc.Metric, 0, len(metricsConfigs))
+
+	for _, raw := range metricsConfigs {
+		data := raw.(map[string]interface{})
+		metric := dataproc.Metric{
+			MetricSource:    data["metric_source"].(string),
+			MetricOverrides: convertStringSet(data["metric_overrides"].(*schema.Set)),
+		}
+		metricsSet = append(metricsSet, &metric)
+	}
+	conf.Metrics = metricsSet
+	return conf
+}
+
 func expandMetastoreConfig(cfg map[string]interface{}) *dataproc.MetastoreConfig {
 	conf := &dataproc.MetastoreConfig{}
 	if v, ok := cfg["dataproc_metastore_service"]; ok {
@@ -1872,7 +1946,7 @@ func expandAccelerators(configured []interface{}) []*dataproc.AcceleratorConfig 
 
 func resourceDataprocClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -1979,7 +2053,7 @@ func resourceDataprocClusterUpdate(d *schema.ResourceData, meta interface{}) err
 
 func resourceDataprocClusterRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -2171,6 +2245,7 @@ func flattenClusterConfig(d *schema.ResourceData, cfg *dataproc.ClusterConfig) (
 		"metastore_config":          flattenMetastoreConfig(d, cfg.MetastoreConfig),
 		"lifecycle_config":          flattenLifecycleConfig(d, cfg.LifecycleConfig),
 		"endpoint_config":           flattenEndpointConfig(d, cfg.EndpointConfig),
+		"dataproc_metric_config":    flattenDataprocMetricConfig(d, cfg.DataprocMetricConfig),
 	}
 
 	if len(cfg.InitializationActions) > 0 {
@@ -2275,6 +2350,26 @@ func flattenEndpointConfig(d *schema.ResourceData, ec *dataproc.EndpointConfig) 
 	}
 
 	return []map[string]interface{}{data}
+}
+
+func flattenDataprocMetricConfig(d *schema.ResourceData, dmc *dataproc.DataprocMetricConfig) []map[string]interface{} {
+	if dmc == nil {
+		return nil
+	}
+
+	metrics := map[string]interface{}{}
+	metricsTypeList := schema.NewSet(schema.HashResource(metricsSchema()), []interface{}{}).List()
+	for _, metric := range dmc.Metrics {
+		data := map[string]interface{}{
+			"metric_source":    metric.MetricSource,
+			"metric_overrides": metric.MetricOverrides,
+		}
+
+		metricsTypeList = append(metricsTypeList, &data)
+	}
+	metrics["metrics"] = metricsTypeList
+
+	return []map[string]interface{}{metrics}
 }
 
 func flattenMetastoreConfig(d *schema.ResourceData, ec *dataproc.MetastoreConfig) []map[string]interface{} {
@@ -2440,7 +2535,7 @@ func extractInitTimeout(t string) (int, error) {
 
 func resourceDataprocClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}

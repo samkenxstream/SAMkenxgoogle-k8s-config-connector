@@ -23,22 +23,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceExample(t *testing.T) {
+func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceBasicExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project_id":    getTestProjectFromEnv(),
-		"region":        getTestRegionFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project_id":    GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProvidersOiCS,
 		CheckDestroy: testAccCheckFirebaseDatabaseInstanceDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceExample(context),
+				Config: testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceBasicExample(context),
 			},
 			{
 				ResourceName:            "google_firebase_database_instance.basic",
@@ -50,33 +49,32 @@ func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceExample(t *testing.
 	})
 }
 
-func testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceExample(context map[string]interface{}) string {
+func testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceBasicExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_firebase_database_instance" "basic" {
   provider = google-beta
   project  = "%{project_id}"
-  region   = "%{region}"
+  region   = "us-central1"
   instance_id = "tf-test-active-db%{random_suffix}"
 }
 `, context)
 }
 
-func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDisabledExample(t *testing.T) {
+func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceFullExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project_id":    getTestProjectFromEnv(),
-		"region":        getTestRegionFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project_id":    GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProvidersOiCS,
 		CheckDestroy: testAccCheckFirebaseDatabaseInstanceDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDisabledExample(context),
+				Config: testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceFullExample(context),
 			},
 			{
 				ResourceName:            "google_firebase_database_instance.full",
@@ -88,12 +86,12 @@ func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDisabledExample(t *
 	})
 }
 
-func testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDisabledExample(context map[string]interface{}) string {
+func testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceFullExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_firebase_database_instance" "full" {
   provider = google-beta
   project  = "%{project_id}"
-  region   = "%{region}"
+  region   = "europe-west1"
   instance_id = "tf-test-disabled-db%{random_suffix}"
   type     = "USER_DATABASE"
   desired_state   = "DISABLED"
@@ -101,22 +99,21 @@ resource "google_firebase_database_instance" "full" {
 `, context)
 }
 
-func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDefaultExample(t *testing.T) {
+func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDefaultDatabaseExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"org_id":        getTestOrgFromEnv(t),
-		"region":        getTestRegionFromEnv(),
-		"random_suffix": randString(t, 10),
+		"org_id":        GetTestOrgFromEnv(t),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProvidersOiCS,
+		Providers:    TestAccProvidersOiCS,
 		CheckDestroy: testAccCheckFirebaseDatabaseInstanceDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDefaultExample(context),
+				Config: testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDefaultDatabaseExample(context),
 			},
 			{
 				ResourceName:            "google_firebase_database_instance.default",
@@ -128,7 +125,7 @@ func TestAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDefaultExample(t *t
 	})
 }
 
-func testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDefaultExample(context map[string]interface{}) string {
+func testAccFirebaseDatabaseInstance_firebaseDatabaseInstanceDefaultDatabaseExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_project" "default" {
   provider = google-beta
@@ -154,9 +151,10 @@ resource "google_project_service" "firebase_database" {
 resource "google_firebase_database_instance" "default" {
   provider = google-beta
   project  = google_firebase_project.default.project
-  region   = "%{region}"
+  region   = "us-central1"
   instance_id = "tf-test-rtdb-project%{random_suffix}-default-rtdb"
   type     = "DEFAULT_DATABASE"
+  depends_on = [google_project_service.firebase_database]
 }
 `, context)
 }
@@ -171,7 +169,7 @@ func testAccCheckFirebaseDatabaseInstanceDestroyProducer(t *testing.T) func(s *t
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{FirebaseDatabaseBasePath}}projects/{{project}}/locations/{{region}}/instances/{{instance_id}}")
 			if err != nil {
@@ -184,7 +182,7 @@ func testAccCheckFirebaseDatabaseInstanceDestroyProducer(t *testing.T) func(s *t
 				billingProject = config.BillingProject
 			}
 
-			res, err := sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			res, err := SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err != nil {
 				return err // RTDB only supports soft-delete.
 			}

@@ -35,7 +35,7 @@ func suppressAttachedClustersLoggingConfigDiff(_, old, new string, d *schema.Res
 	return false
 }
 
-func resourceContainerAttachedCluster() *schema.Resource {
+func ResourceContainerAttachedCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceContainerAttachedClusterCreate,
 		Read:   resourceContainerAttachedClusterRead,
@@ -308,6 +308,12 @@ the Workload Identity Pool.`,
 					},
 				},
 			},
+			"deletion_policy": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "DELETE",
+				Description: `Policy to determine what flags to send on delete.`,
+			},
 			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -321,7 +327,7 @@ the Workload Identity Pool.`,
 
 func resourceContainerAttachedClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -407,7 +413,7 @@ func resourceContainerAttachedClusterCreate(d *schema.ResourceData, meta interfa
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
+	res, err := SendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return fmt.Errorf("Error creating Cluster: %s", err)
 	}
@@ -422,7 +428,7 @@ func resourceContainerAttachedClusterCreate(d *schema.ResourceData, meta interfa
 	// Use the resource in the operation response to populate
 	// identity fields and d.Id() before read
 	var opRes map[string]interface{}
-	err = containerAttachedOperationWaitTimeWithResponse(
+	err = ContainerAttachedOperationWaitTimeWithResponse(
 		config, res, &opRes, project, "Creating Cluster", userAgent,
 		d.Timeout(schema.TimeoutCreate))
 	if err != nil {
@@ -450,7 +456,7 @@ func resourceContainerAttachedClusterCreate(d *schema.ResourceData, meta interfa
 
 func resourceContainerAttachedClusterRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -473,11 +479,17 @@ func resourceContainerAttachedClusterRead(d *schema.ResourceData, meta interface
 		billingProject = bp
 	}
 
-	res, err := sendRequest(config, "GET", billingProject, url, userAgent, nil)
+	res, err := SendRequest(config, "GET", billingProject, url, userAgent, nil)
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("ContainerAttachedCluster %q", d.Id()))
 	}
 
+	// Explicitly set virtual fields to default values if unset
+	if _, ok := d.GetOkExists("deletion_policy"); !ok {
+		if err := d.Set("deletion_policy", "DELETE"); err != nil {
+			return fmt.Errorf("Error setting deletion_policy: %s", err)
+		}
+	}
 	if err := d.Set("project", project); err != nil {
 		return fmt.Errorf("Error reading Cluster: %s", err)
 	}
@@ -545,7 +557,7 @@ func resourceContainerAttachedClusterRead(d *schema.ResourceData, meta interface
 
 func resourceContainerAttachedClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -682,7 +694,7 @@ func resourceContainerAttachedClusterUpdate(d *schema.ResourceData, meta interfa
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
+	res, err := SendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
 
 	if err != nil {
 		return fmt.Errorf("Error updating Cluster %q: %s", d.Id(), err)
@@ -690,7 +702,7 @@ func resourceContainerAttachedClusterUpdate(d *schema.ResourceData, meta interfa
 		log.Printf("[DEBUG] Finished updating Cluster %q: %#v", d.Id(), res)
 	}
 
-	err = containerAttachedOperationWaitTime(
+	err = ContainerAttachedOperationWaitTime(
 		config, res, project, "Updating Cluster", userAgent,
 		d.Timeout(schema.TimeoutUpdate))
 
@@ -703,7 +715,7 @@ func resourceContainerAttachedClusterUpdate(d *schema.ResourceData, meta interfa
 
 func resourceContainerAttachedClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -722,6 +734,14 @@ func resourceContainerAttachedClusterDelete(d *schema.ResourceData, meta interfa
 	}
 
 	var obj map[string]interface{}
+	if v, ok := d.GetOk("deletion_policy"); ok {
+		if v == "DELETE_IGNORE_ERRORS" {
+			url, err = addQueryParams(url, map[string]string{"ignore_errors": "true"})
+			if err != nil {
+				return err
+			}
+		}
+	}
 	log.Printf("[DEBUG] Deleting Cluster %q", d.Id())
 
 	// err == nil indicates that the billing_project value was found
@@ -729,12 +749,12 @@ func resourceContainerAttachedClusterDelete(d *schema.ResourceData, meta interfa
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
+	res, err := SendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return handleNotFoundError(err, d, "Cluster")
 	}
 
-	err = containerAttachedOperationWaitTime(
+	err = ContainerAttachedOperationWaitTime(
 		config, res, project, "Deleting Cluster", userAgent,
 		d.Timeout(schema.TimeoutDelete))
 
@@ -762,6 +782,11 @@ func resourceContainerAttachedClusterImport(d *schema.ResourceData, meta interfa
 		return nil, fmt.Errorf("Error constructing id: %s", err)
 	}
 	d.SetId(id)
+
+	// Explicitly set virtual fields to default values on import
+	if err := d.Set("deletion_policy", "DELETE"); err != nil {
+		return nil, fmt.Errorf("Error setting deletion_policy: %s", err)
+	}
 
 	return []*schema.ResourceData{d}, nil
 }

@@ -74,7 +74,7 @@ func TestUnsupportedResourceShouldFail(t *testing.T) {
 func TestAll(t *testing.T) {
 	shouldRun := func(fixture resourcefixture.ResourceFixture, mgr manager.Manager) bool {
 		switch fixture.GVK.Kind {
-		case "Project", "PubSubTopic":
+		case "PubSubTopic":
 			return true
 		default:
 			return false
@@ -91,7 +91,7 @@ func TestAll(t *testing.T) {
 		}
 		resourceCleanup := systemContext.Reconciler.BuildCleanupFunc(testContext.CreateUnstruct, testreconciler.CleanupPolicyAlways)
 		defer resourceCleanup()
-		systemContext.Reconciler.Reconcile(testContext.CreateUnstruct, testreconciler.ExpectedSuccessfulReconcileResultFor(systemContext.Reconciler, testContext.CreateUnstruct.GroupVersionKind()), nil)
+		systemContext.Reconciler.Reconcile(testContext.CreateUnstruct, testreconciler.ExpectedSuccessfulReconcileResultFor(systemContext.Reconciler, testContext.CreateUnstruct), nil)
 		leaser := leaser.NewLeaser(systemContext.TFProvider, systemContext.SMLoader, systemContext.Manager.GetClient())
 		uniqueId1 := fmt.Sprintf("l1-%v", testContext.UniqueId)
 		uniqueId2 := fmt.Sprintf("l2-%v", testContext.UniqueId)

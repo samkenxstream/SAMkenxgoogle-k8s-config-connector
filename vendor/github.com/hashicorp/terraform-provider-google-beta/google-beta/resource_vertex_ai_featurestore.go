@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceVertexAIFeaturestore() *schema.Resource {
+func ResourceVertexAIFeaturestore() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVertexAIFeaturestoreCreate,
 		Read:   resourceVertexAIFeaturestoreRead,
@@ -106,6 +106,12 @@ func resourceVertexAIFeaturestore() *schema.Resource {
 					},
 				},
 			},
+			"online_storage_ttl_days": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: `TTL in days for feature values that will be stored in online serving storage. The Feature Store online storage periodically removes obsolete feature values older than onlineStorageTtlDays since the feature generation time. Note that onlineStorageTtlDays should be less than or equal to offlineStorageTtlDays for each EntityType under a featurestore. If not set, default to 4000 days`,
+				Default:     4000,
+			},
 			"region": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -147,7 +153,7 @@ func resourceVertexAIFeaturestore() *schema.Resource {
 
 func resourceVertexAIFeaturestoreCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -164,6 +170,12 @@ func resourceVertexAIFeaturestoreCreate(d *schema.ResourceData, meta interface{}
 		return err
 	} else if v, ok := d.GetOkExists("online_serving_config"); !isEmptyValue(reflect.ValueOf(onlineServingConfigProp)) && (ok || !reflect.DeepEqual(v, onlineServingConfigProp)) {
 		obj["onlineServingConfig"] = onlineServingConfigProp
+	}
+	onlineStorageTtlDaysProp, err := expandVertexAIFeaturestoreOnlineStorageTtlDays(d.Get("online_storage_ttl_days"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("online_storage_ttl_days"); !isEmptyValue(reflect.ValueOf(onlineStorageTtlDaysProp)) && (ok || !reflect.DeepEqual(v, onlineStorageTtlDaysProp)) {
+		obj["onlineStorageTtlDays"] = onlineStorageTtlDaysProp
 	}
 	encryptionSpecProp, err := expandVertexAIFeaturestoreEncryptionSpec(d.Get("encryption_spec"), d, config)
 	if err != nil {
@@ -191,7 +203,7 @@ func resourceVertexAIFeaturestoreCreate(d *schema.ResourceData, meta interface{}
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
+	res, err := SendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return fmt.Errorf("Error creating Featurestore: %s", err)
 	}
@@ -206,7 +218,7 @@ func resourceVertexAIFeaturestoreCreate(d *schema.ResourceData, meta interface{}
 	// Use the resource in the operation response to populate
 	// identity fields and d.Id() before read
 	var opRes map[string]interface{}
-	err = vertexAIOperationWaitTimeWithResponse(
+	err = VertexAIOperationWaitTimeWithResponse(
 		config, res, &opRes, project, "Creating Featurestore", userAgent,
 		d.Timeout(schema.TimeoutCreate))
 	if err != nil {
@@ -230,7 +242,7 @@ func resourceVertexAIFeaturestoreCreate(d *schema.ResourceData, meta interface{}
 
 func resourceVertexAIFeaturestoreRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -253,7 +265,7 @@ func resourceVertexAIFeaturestoreRead(d *schema.ResourceData, meta interface{}) 
 		billingProject = bp
 	}
 
-	res, err := sendRequest(config, "GET", billingProject, url, userAgent, nil)
+	res, err := SendRequest(config, "GET", billingProject, url, userAgent, nil)
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("VertexAIFeaturestore %q", d.Id()))
 	}
@@ -280,6 +292,9 @@ func resourceVertexAIFeaturestoreRead(d *schema.ResourceData, meta interface{}) 
 	if err := d.Set("online_serving_config", flattenVertexAIFeaturestoreOnlineServingConfig(res["onlineServingConfig"], d, config)); err != nil {
 		return fmt.Errorf("Error reading Featurestore: %s", err)
 	}
+	if err := d.Set("online_storage_ttl_days", flattenVertexAIFeaturestoreOnlineStorageTtlDays(res["onlineStorageTtlDays"], d, config)); err != nil {
+		return fmt.Errorf("Error reading Featurestore: %s", err)
+	}
 	if err := d.Set("encryption_spec", flattenVertexAIFeaturestoreEncryptionSpec(res["encryptionSpec"], d, config)); err != nil {
 		return fmt.Errorf("Error reading Featurestore: %s", err)
 	}
@@ -289,7 +304,7 @@ func resourceVertexAIFeaturestoreRead(d *schema.ResourceData, meta interface{}) 
 
 func resourceVertexAIFeaturestoreUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -315,6 +330,12 @@ func resourceVertexAIFeaturestoreUpdate(d *schema.ResourceData, meta interface{}
 	} else if v, ok := d.GetOkExists("online_serving_config"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, onlineServingConfigProp)) {
 		obj["onlineServingConfig"] = onlineServingConfigProp
 	}
+	onlineStorageTtlDaysProp, err := expandVertexAIFeaturestoreOnlineStorageTtlDays(d.Get("online_storage_ttl_days"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("online_storage_ttl_days"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, onlineStorageTtlDaysProp)) {
+		obj["onlineStorageTtlDays"] = onlineStorageTtlDaysProp
+	}
 	encryptionSpecProp, err := expandVertexAIFeaturestoreEncryptionSpec(d.Get("encryption_spec"), d, config)
 	if err != nil {
 		return err
@@ -338,6 +359,10 @@ func resourceVertexAIFeaturestoreUpdate(d *schema.ResourceData, meta interface{}
 		updateMask = append(updateMask, "onlineServingConfig")
 	}
 
+	if d.HasChange("online_storage_ttl_days") {
+		updateMask = append(updateMask, "onlineStorageTtlDays")
+	}
+
 	if d.HasChange("encryption_spec") {
 		updateMask = append(updateMask, "encryptionSpec")
 	}
@@ -353,7 +378,7 @@ func resourceVertexAIFeaturestoreUpdate(d *schema.ResourceData, meta interface{}
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
+	res, err := SendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
 
 	if err != nil {
 		return fmt.Errorf("Error updating Featurestore %q: %s", d.Id(), err)
@@ -361,7 +386,7 @@ func resourceVertexAIFeaturestoreUpdate(d *schema.ResourceData, meta interface{}
 		log.Printf("[DEBUG] Finished updating Featurestore %q: %#v", d.Id(), res)
 	}
 
-	err = vertexAIOperationWaitTime(
+	err = VertexAIOperationWaitTime(
 		config, res, project, "Updating Featurestore", userAgent,
 		d.Timeout(schema.TimeoutUpdate))
 
@@ -374,7 +399,7 @@ func resourceVertexAIFeaturestoreUpdate(d *schema.ResourceData, meta interface{}
 
 func resourceVertexAIFeaturestoreDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -407,12 +432,12 @@ func resourceVertexAIFeaturestoreDelete(d *schema.ResourceData, meta interface{}
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
+	res, err := SendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return handleNotFoundError(err, d, "Featurestore")
 	}
 
-	err = vertexAIOperationWaitTime(
+	err = VertexAIOperationWaitTime(
 		config, res, project, "Deleting Featurestore", userAgent,
 		d.Timeout(schema.TimeoutDelete))
 
@@ -480,7 +505,7 @@ func flattenVertexAIFeaturestoreOnlineServingConfig(v interface{}, d *schema.Res
 func flattenVertexAIFeaturestoreOnlineServingConfigFixedNodeCount(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -512,7 +537,7 @@ func flattenVertexAIFeaturestoreOnlineServingConfigScaling(v interface{}, d *sch
 func flattenVertexAIFeaturestoreOnlineServingConfigScalingMinNodeCount(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -529,7 +554,24 @@ func flattenVertexAIFeaturestoreOnlineServingConfigScalingMinNodeCount(v interfa
 func flattenVertexAIFeaturestoreOnlineServingConfigScalingMaxNodeCount(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
+			return intVal
+		}
+	}
+
+	// number values are represented as float64
+	if floatVal, ok := v.(float64); ok {
+		intVal := int(floatVal)
+		return intVal
+	}
+
+	return v // let terraform core handle it otherwise
+}
+
+func flattenVertexAIFeaturestoreOnlineStorageTtlDays(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	// Handles the string fixed64 format
+	if strVal, ok := v.(string); ok {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -632,6 +674,10 @@ func expandVertexAIFeaturestoreOnlineServingConfigScalingMinNodeCount(v interfac
 }
 
 func expandVertexAIFeaturestoreOnlineServingConfigScalingMaxNodeCount(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	return v, nil
+}
+
+func expandVertexAIFeaturestoreOnlineStorageTtlDays(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	return v, nil
 }
 

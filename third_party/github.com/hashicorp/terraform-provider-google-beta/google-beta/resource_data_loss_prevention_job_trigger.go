@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceDataLossPreventionJobTrigger() *schema.Resource {
+func ResourceDataLossPreventionJobTrigger() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDataLossPreventionJobTriggerCreate,
 		Read:   resourceDataLossPreventionJobTriggerRead,
@@ -118,10 +118,30 @@ A duration in seconds with up to nine fractional digits, terminated by 's'. Exam
 										},
 										ExactlyOneOf: []string{},
 									},
+									"publish_findings_to_cloud_data_catalog": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: `Publish findings of a DlpJob to Data Catalog.`,
+										MaxItems:    1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{},
+										},
+										ExactlyOneOf: []string{},
+									},
+									"publish_summary_to_cscc": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: `Publish the result summary of a DlpJob to the Cloud Security Command Center.`,
+										MaxItems:    1,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{},
+										},
+										ExactlyOneOf: []string{},
+									},
 									"save_findings": {
 										Type:        schema.TypeList,
 										Optional:    true,
-										Description: `Schedule for triggered jobs`,
+										Description: `If set, the detailed findings will be persisted to the specified OutputStorageConfig. Only a single instance of this action can be specified. Compatible with: Inspect, Risk`,
 										MaxItems:    1,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -495,7 +515,7 @@ be based on the time of the execution of the last run of the JobTrigger.`,
 
 func resourceDataLossPreventionJobTriggerCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -550,7 +570,7 @@ func resourceDataLossPreventionJobTriggerCreate(d *schema.ResourceData, meta int
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
+	res, err := SendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return fmt.Errorf("Error creating JobTrigger: %s", err)
 	}
@@ -572,7 +592,7 @@ func resourceDataLossPreventionJobTriggerCreate(d *schema.ResourceData, meta int
 
 func resourceDataLossPreventionJobTriggerRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -589,7 +609,7 @@ func resourceDataLossPreventionJobTriggerRead(d *schema.ResourceData, meta inter
 		billingProject = bp
 	}
 
-	res, err := sendRequest(config, "GET", billingProject, url, userAgent, nil)
+	res, err := SendRequest(config, "GET", billingProject, url, userAgent, nil)
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("DataLossPreventionJobTrigger %q", d.Id()))
 	}
@@ -621,7 +641,7 @@ func resourceDataLossPreventionJobTriggerRead(d *schema.ResourceData, meta inter
 
 func resourceDataLossPreventionJobTriggerUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -704,7 +724,7 @@ func resourceDataLossPreventionJobTriggerUpdate(d *schema.ResourceData, meta int
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
+	res, err := SendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
 
 	if err != nil {
 		return fmt.Errorf("Error updating JobTrigger %q: %s", d.Id(), err)
@@ -717,7 +737,7 @@ func resourceDataLossPreventionJobTriggerUpdate(d *schema.ResourceData, meta int
 
 func resourceDataLossPreventionJobTriggerDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -737,7 +757,7 @@ func resourceDataLossPreventionJobTriggerDelete(d *schema.ResourceData, meta int
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
+	res, err := SendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return handleNotFoundError(err, d, "JobTrigger")
 	}
@@ -1056,7 +1076,7 @@ func flattenDataLossPreventionJobTriggerInspectJobStorageConfigCloudStorageOptio
 func flattenDataLossPreventionJobTriggerInspectJobStorageConfigCloudStorageOptionsBytesLimitPerFile(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -1073,7 +1093,7 @@ func flattenDataLossPreventionJobTriggerInspectJobStorageConfigCloudStorageOptio
 func flattenDataLossPreventionJobTriggerInspectJobStorageConfigCloudStorageOptionsBytesLimitPerFilePercent(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -1090,7 +1110,7 @@ func flattenDataLossPreventionJobTriggerInspectJobStorageConfigCloudStorageOptio
 func flattenDataLossPreventionJobTriggerInspectJobStorageConfigCloudStorageOptionsFilesLimitPercent(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -1165,7 +1185,7 @@ func flattenDataLossPreventionJobTriggerInspectJobStorageConfigBigQueryOptionsTa
 func flattenDataLossPreventionJobTriggerInspectJobStorageConfigBigQueryOptionsRowsLimit(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -1182,7 +1202,7 @@ func flattenDataLossPreventionJobTriggerInspectJobStorageConfigBigQueryOptionsRo
 func flattenDataLossPreventionJobTriggerInspectJobStorageConfigBigQueryOptionsRowsLimitPercent(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -1235,8 +1255,10 @@ func flattenDataLossPreventionJobTriggerInspectJobActions(v interface{}, d *sche
 			continue
 		}
 		transformed = append(transformed, map[string]interface{}{
-			"save_findings": flattenDataLossPreventionJobTriggerInspectJobActionsSaveFindings(original["saveFindings"], d, config),
-			"pub_sub":       flattenDataLossPreventionJobTriggerInspectJobActionsPubSub(original["pubSub"], d, config),
+			"save_findings":                          flattenDataLossPreventionJobTriggerInspectJobActionsSaveFindings(original["saveFindings"], d, config),
+			"pub_sub":                                flattenDataLossPreventionJobTriggerInspectJobActionsPubSub(original["pubSub"], d, config),
+			"publish_summary_to_cscc":                flattenDataLossPreventionJobTriggerInspectJobActionsPublishSummaryToCscc(original["publishSummaryToCscc"], d, config),
+			"publish_findings_to_cloud_data_catalog": flattenDataLossPreventionJobTriggerInspectJobActionsPublishFindingsToCloudDataCatalog(original["publishFindingsToCloudDataCatalog"], d, config),
 		})
 	}
 	return transformed
@@ -1317,6 +1339,22 @@ func flattenDataLossPreventionJobTriggerInspectJobActionsPubSub(v interface{}, d
 }
 func flattenDataLossPreventionJobTriggerInspectJobActionsPubSubTopic(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	return v
+}
+
+func flattenDataLossPreventionJobTriggerInspectJobActionsPublishSummaryToCscc(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	if v == nil {
+		return nil
+	}
+	transformed := make(map[string]interface{})
+	return []interface{}{transformed}
+}
+
+func flattenDataLossPreventionJobTriggerInspectJobActionsPublishFindingsToCloudDataCatalog(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	if v == nil {
+		return nil
+	}
+	transformed := make(map[string]interface{})
+	return []interface{}{transformed}
 }
 
 func expandDataLossPreventionJobTriggerDescription(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
@@ -1914,6 +1952,20 @@ func expandDataLossPreventionJobTriggerInspectJobActions(v interface{}, d Terraf
 			transformed["pubSub"] = transformedPubSub
 		}
 
+		transformedPublishSummaryToCscc, err := expandDataLossPreventionJobTriggerInspectJobActionsPublishSummaryToCscc(original["publish_summary_to_cscc"], d, config)
+		if err != nil {
+			return nil, err
+		} else {
+			transformed["publishSummaryToCscc"] = transformedPublishSummaryToCscc
+		}
+
+		transformedPublishFindingsToCloudDataCatalog, err := expandDataLossPreventionJobTriggerInspectJobActionsPublishFindingsToCloudDataCatalog(original["publish_findings_to_cloud_data_catalog"], d, config)
+		if err != nil {
+			return nil, err
+		} else {
+			transformed["publishFindingsToCloudDataCatalog"] = transformedPublishFindingsToCloudDataCatalog
+		}
+
 		req = append(req, transformed)
 	}
 	return req, nil
@@ -2034,6 +2086,36 @@ func expandDataLossPreventionJobTriggerInspectJobActionsPubSub(v interface{}, d 
 
 func expandDataLossPreventionJobTriggerInspectJobActionsPubSubTopic(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	return v, nil
+}
+
+func expandDataLossPreventionJobTriggerInspectJobActionsPublishSummaryToCscc(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	l := v.([]interface{})
+	if len(l) == 0 {
+		return nil, nil
+	}
+
+	if l[0] == nil {
+		transformed := make(map[string]interface{})
+		return transformed, nil
+	}
+	transformed := make(map[string]interface{})
+
+	return transformed, nil
+}
+
+func expandDataLossPreventionJobTriggerInspectJobActionsPublishFindingsToCloudDataCatalog(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	l := v.([]interface{})
+	if len(l) == 0 {
+		return nil, nil
+	}
+
+	if l[0] == nil {
+		transformed := make(map[string]interface{})
+		return transformed, nil
+	}
+	transformed := make(map[string]interface{})
+
+	return transformed, nil
 }
 
 func resourceDataLossPreventionJobTriggerEncoder(d *schema.ResourceData, meta interface{}, obj map[string]interface{}) (map[string]interface{}, error) {

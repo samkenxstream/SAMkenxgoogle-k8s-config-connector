@@ -8,7 +8,7 @@ import (
 // NewTestConfig create a config using the http test server.
 func NewTestConfig(server *httptest.Server) *Config {
 	cfg := &Config{}
-	cfg.client = server.Client()
+	cfg.Client = server.Client()
 	configureTestBasePaths(cfg, server.URL)
 	return cfg
 }
@@ -39,6 +39,7 @@ func configureTestBasePaths(c *Config, url string) {
 	c.CertificateManagerBasePath = url
 	c.CloudAssetBasePath = url
 	c.CloudBuildBasePath = url
+	c.Cloudbuildv2BasePath = url
 	c.CloudFunctionsBasePath = url
 	c.Cloudfunctions2BasePath = url
 	c.CloudIdentityBasePath = url
@@ -113,6 +114,7 @@ func configureTestBasePaths(c *Config, url string) {
 	c.VertexAIBasePath = url
 	c.VPCAccessBasePath = url
 	c.WorkflowsBasePath = url
+	c.WorkstationsBasePath = url
 
 	// Handwritten Products / Versioned / Atypical Entries
 	c.CloudBillingBasePath = url

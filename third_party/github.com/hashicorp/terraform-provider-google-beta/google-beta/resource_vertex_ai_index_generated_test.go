@@ -27,13 +27,13 @@ func TestAccVertexAIIndex_vertexAiIndexExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project":       getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project":       GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckVertexAIIndexDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -52,7 +52,7 @@ func TestAccVertexAIIndex_vertexAiIndexExample(t *testing.T) {
 func testAccVertexAIIndex_vertexAiIndexExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_storage_bucket" "bucket" {
-  name     = "%{project}-tf-test-vertex-ai-index-test%{random_suffix}"  # Every bucket name must be globally unique
+  name     = "tf-test-vertex-ai-index-test%{random_suffix}"
   location = "us-central1"
   uniform_bucket_level_access = true
 }
@@ -98,13 +98,13 @@ func TestAccVertexAIIndex_vertexAiIndexStreamingExample(t *testing.T) {
 	t.Parallel()
 
 	context := map[string]interface{}{
-		"project":       getTestProjectFromEnv(),
-		"random_suffix": randString(t, 10),
+		"project":       GetTestProjectFromEnv(),
+		"random_suffix": RandString(t, 10),
 	}
 
-	vcrTest(t, resource.TestCase{
+	VcrTest(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		Providers:    TestAccProviders,
 		CheckDestroy: testAccCheckVertexAIIndexDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
@@ -123,7 +123,7 @@ func TestAccVertexAIIndex_vertexAiIndexStreamingExample(t *testing.T) {
 func testAccVertexAIIndex_vertexAiIndexStreamingExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_storage_bucket" "bucket" {
-  name     = "%{project}-tf-test-vertex-ai-index-test%{random_suffix}"  # Every bucket name must be globally unique
+  name     = "tf-test-vertex-ai-index-test%{random_suffix}"
   location = "us-central1"
   uniform_bucket_level_access = true
 }
@@ -172,7 +172,7 @@ func testAccCheckVertexAIIndexDestroyProducer(t *testing.T) func(s *terraform.St
 				continue
 			}
 
-			config := googleProviderConfig(t)
+			config := GoogleProviderConfig(t)
 
 			url, err := replaceVarsForTest(config, rs, "{{VertexAIBasePath}}projects/{{project}}/locations/{{region}}/indexes/{{name}}")
 			if err != nil {
@@ -185,7 +185,7 @@ func testAccCheckVertexAIIndexDestroyProducer(t *testing.T) func(s *terraform.St
 				billingProject = config.BillingProject
 			}
 
-			_, err = sendRequest(config, "GET", billingProject, url, config.userAgent, nil)
+			_, err = SendRequest(config, "GET", billingProject, url, config.UserAgent, nil)
 			if err == nil {
 				return fmt.Errorf("VertexAIIndex still exists at %s", url)
 			}

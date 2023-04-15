@@ -37,7 +37,7 @@ func checkValAndDefaultStringSuppress(defaultVal string, checkVal string) schema
 	}
 }
 
-func resourceBillingBudget() *schema.Resource {
+func ResourceBillingBudget() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceBillingBudgetCreate,
 		Read:   resourceBillingBudgetRead,
@@ -203,7 +203,9 @@ Exactly one of 'calendar_period', 'custom_period' must be provided. Possible val
 							Optional: true,
 							Description: `Optional. If creditTypesTreatment is INCLUDE_SPECIFIED_CREDITS,
 this is a list of credit types to be subtracted from gross cost to determine the spend for threshold calculations. See a list of acceptable credit type values.
-If creditTypesTreatment is not INCLUDE_SPECIFIED_CREDITS, this field must be empty.`,
+If creditTypesTreatment is not INCLUDE_SPECIFIED_CREDITS, this field must be empty.
+
+**Note:** If the field has a value in the config and needs to be removed, the field has to be an emtpy array in the config.`,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -336,7 +338,9 @@ specifying that usage from only this set of subaccounts should
 be included in the budget. If a subaccount is set to the name of
 the parent account, usage from the parent account will be included.
 If the field is omitted, the report will include usage from the parent
-account and all subaccounts, if they exist.`,
+account and all subaccounts, if they exist.
+
+**Note:** If the field has a value in the config and needs to be removed, the field has to be an emtpy array in the config.`,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -389,7 +393,7 @@ billingAccounts/{billingAccountId}/budgets/{budgetId}.`,
 
 func resourceBillingBudgetCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -439,7 +443,7 @@ func resourceBillingBudgetCreate(d *schema.ResourceData, meta interface{}) error
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
+	res, err := SendRequestWithTimeout(config, "POST", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutCreate))
 	if err != nil {
 		return fmt.Errorf("Error creating Budget: %s", err)
 	}
@@ -461,7 +465,7 @@ func resourceBillingBudgetCreate(d *schema.ResourceData, meta interface{}) error
 
 func resourceBillingBudgetRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -478,7 +482,7 @@ func resourceBillingBudgetRead(d *schema.ResourceData, meta interface{}) error {
 		billingProject = bp
 	}
 
-	res, err := sendRequest(config, "GET", billingProject, url, userAgent, nil)
+	res, err := SendRequest(config, "GET", billingProject, url, userAgent, nil)
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("BillingBudget %q", d.Id()))
 	}
@@ -507,7 +511,7 @@ func resourceBillingBudgetRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceBillingBudgetUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -564,7 +568,9 @@ func resourceBillingBudgetUpdate(d *schema.ResourceData, meta interface{}) error
 			"budgetFilter.calendarPeriod",
 			"budgetFilter.customPeriod",
 			"budgetFilter.services",
-			"budgetFilter.creditTypesTreatment")
+			"budgetFilter.creditTypesTreatment",
+			"budgetFilter.creditTypes",
+			"budgetFilter.subaccounts")
 	}
 
 	if d.HasChange("amount") {
@@ -595,7 +601,7 @@ func resourceBillingBudgetUpdate(d *schema.ResourceData, meta interface{}) error
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
+	res, err := SendRequestWithTimeout(config, "PATCH", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutUpdate))
 
 	if err != nil {
 		return fmt.Errorf("Error updating Budget %q: %s", d.Id(), err)
@@ -608,7 +614,7 @@ func resourceBillingBudgetUpdate(d *schema.ResourceData, meta interface{}) error
 
 func resourceBillingBudgetDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	userAgent, err := generateUserAgentString(d, config.userAgent)
+	userAgent, err := generateUserAgentString(d, config.UserAgent)
 	if err != nil {
 		return err
 	}
@@ -628,7 +634,7 @@ func resourceBillingBudgetDelete(d *schema.ResourceData, meta interface{}) error
 		billingProject = bp
 	}
 
-	res, err := sendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
+	res, err := SendRequestWithTimeout(config, "DELETE", billingProject, url, userAgent, obj, d.Timeout(schema.TimeoutDelete))
 	if err != nil {
 		return handleNotFoundError(err, d, "Budget")
 	}
@@ -782,7 +788,7 @@ func flattenBillingBudgetBudgetFilterCustomPeriodStartDate(v interface{}, d *sch
 func flattenBillingBudgetBudgetFilterCustomPeriodStartDateYear(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -799,7 +805,7 @@ func flattenBillingBudgetBudgetFilterCustomPeriodStartDateYear(v interface{}, d 
 func flattenBillingBudgetBudgetFilterCustomPeriodStartDateMonth(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -816,7 +822,7 @@ func flattenBillingBudgetBudgetFilterCustomPeriodStartDateMonth(v interface{}, d
 func flattenBillingBudgetBudgetFilterCustomPeriodStartDateDay(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -850,7 +856,7 @@ func flattenBillingBudgetBudgetFilterCustomPeriodEndDate(v interface{}, d *schem
 func flattenBillingBudgetBudgetFilterCustomPeriodEndDateYear(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -867,7 +873,7 @@ func flattenBillingBudgetBudgetFilterCustomPeriodEndDateYear(v interface{}, d *s
 func flattenBillingBudgetBudgetFilterCustomPeriodEndDateMonth(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -884,7 +890,7 @@ func flattenBillingBudgetBudgetFilterCustomPeriodEndDateMonth(v interface{}, d *
 func flattenBillingBudgetBudgetFilterCustomPeriodEndDateDay(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
@@ -941,7 +947,7 @@ func flattenBillingBudgetAmountSpecifiedAmountUnits(v interface{}, d *schema.Res
 func flattenBillingBudgetAmountSpecifiedAmountNanos(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	// Handles the string fixed64 format
 	if strVal, ok := v.(string); ok {
-		if intVal, err := stringToFixed64(strVal); err == nil {
+		if intVal, err := StringToFixed64(strVal); err == nil {
 			return intVal
 		}
 	}
