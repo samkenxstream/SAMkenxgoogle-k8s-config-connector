@@ -57,7 +57,6 @@ type TableCsvOptions struct {
 	// +optional
 	FieldDelimiter *string `json:"fieldDelimiter,omitempty"`
 
-	/*  */
 	Quote string `json:"quote"`
 
 	/* The number of rows at the top of a CSV file that BigQuery will skip when reading the data. */
@@ -66,7 +65,6 @@ type TableCsvOptions struct {
 }
 
 type TableEncryptionConfiguration struct {
-	/*  */
 	KmsKeyRef v1alpha1.ResourceRef `json:"kmsKeyRef"`
 
 	/* The self link or full name of the kms key version used to encrypt this table. */
@@ -109,6 +107,10 @@ type TableExternalDataConfiguration struct {
 	/* The maximum number of bad records that BigQuery can ignore when reading data. */
 	// +optional
 	MaxBadRecords *int `json:"maxBadRecords,omitempty"`
+
+	/* When creating an external table, the user can provide a reference file with the table schema. This is enabled for the following formats: AVRO, PARQUET, ORC. */
+	// +optional
+	ReferenceFileSchemaUri *string `json:"referenceFileSchemaUri,omitempty"`
 
 	/* Immutable. A JSON schema for the external table. Schema is required for CSV and JSON formats and is disallowed for Google Cloud Bigtable, Cloud Datastore backups, and Avro formats when using external tables. */
 	// +optional
@@ -208,7 +210,6 @@ type BigQueryTableSpec struct {
 	// +optional
 	Clustering []string `json:"clustering,omitempty"`
 
-	/*  */
 	DatasetRef v1alpha1.ResourceRef `json:"datasetRef"`
 
 	/* The field description. */
@@ -261,25 +262,44 @@ type BigQueryTableStatus struct {
 	   BigQueryTable's current state. */
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* The time when this table was created, in milliseconds since the epoch. */
-	CreationTime int `json:"creationTime,omitempty"`
+	// +optional
+	CreationTime *int `json:"creationTime,omitempty"`
+
 	/* A hash of the resource. */
-	Etag string `json:"etag,omitempty"`
+	// +optional
+	Etag *string `json:"etag,omitempty"`
+
 	/* The time when this table was last modified, in milliseconds since the epoch. */
-	LastModifiedTime int `json:"lastModifiedTime,omitempty"`
+	// +optional
+	LastModifiedTime *int `json:"lastModifiedTime,omitempty"`
+
 	/* The geographic location where the table resides. This value is inherited from the dataset. */
-	Location string `json:"location,omitempty"`
+	// +optional
+	Location *string `json:"location,omitempty"`
+
 	/* The geographic location where the table resides. This value is inherited from the dataset. */
-	NumBytes int `json:"numBytes,omitempty"`
+	// +optional
+	NumBytes *int `json:"numBytes,omitempty"`
+
 	/* The number of bytes in the table that are considered "long-term storage". */
-	NumLongTermBytes int `json:"numLongTermBytes,omitempty"`
+	// +optional
+	NumLongTermBytes *int `json:"numLongTermBytes,omitempty"`
+
 	/* The number of rows of data in this table, excluding any data in the streaming buffer. */
-	NumRows int `json:"numRows,omitempty"`
+	// +optional
+	NumRows *int `json:"numRows,omitempty"`
+
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
+
 	/* The URI of the created resource. */
-	SelfLink string `json:"selfLink,omitempty"`
+	// +optional
+	SelfLink *string `json:"selfLink,omitempty"`
+
 	/* Describes the table type. */
-	Type string `json:"type,omitempty"`
+	// +optional
+	Type *string `json:"type,omitempty"`
 }
 
 // +genclient

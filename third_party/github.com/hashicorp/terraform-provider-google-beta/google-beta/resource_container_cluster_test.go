@@ -756,10 +756,14 @@ func TestAccContainerCluster_withGcpPublicCidrsAccessEnabledToggle(t *testing.T)
 func testAccContainerCluster_withGcpPublicCidrsAccessEnabled(clusterName string, flag string) string {
 
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_gcp_public_cidrs_access_enabled" {
   name               = "%s"
   location           = "us-central1-a"
-  min_master_version = "1.23"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
   initial_node_count = 1
 
   master_authorized_networks_config {
@@ -772,10 +776,14 @@ resource "google_container_cluster" "with_gcp_public_cidrs_access_enabled" {
 func testAccContainerCluster_withoutGcpPublicCidrsAccessEnabled(clusterName string) string {
 
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_gcp_public_cidrs_access_enabled" {
   name               = "%s"
   location           = "us-central1-a"
-  min_master_version = "1.23"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
   initial_node_count = 1
 }
 `, clusterName)
@@ -2565,7 +2573,7 @@ func TestAccContainerCluster_withMonitoringConfig(t *testing.T) {
 		CheckDestroy: testAccCheckContainerClusterDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccContainerCluster_basic_1_23_8(clusterName),
+				Config: testAccContainerCluster_basic_1_23_16(clusterName),
 			},
 			{
 				ResourceName:            "google_container_cluster.primary",
@@ -2611,7 +2619,7 @@ func TestAccContainerCluster_withMonitoringConfig(t *testing.T) {
 			},
 			// Back to basic settings to test setting Prometheus on its own
 			{
-				Config: testAccContainerCluster_basic_1_23_8(clusterName),
+				Config: testAccContainerCluster_basic_1_23_16(clusterName),
 			},
 			{
 				ResourceName:            "google_container_cluster.primary",
@@ -2629,7 +2637,7 @@ func TestAccContainerCluster_withMonitoringConfig(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"min_master_version"},
 			},
 			{
-				Config: testAccContainerCluster_basic_1_23_8(clusterName),
+				Config: testAccContainerCluster_basic_1_23_16(clusterName),
 			},
 			{
 				ResourceName:            "google_container_cluster.primary",
@@ -3420,6 +3428,10 @@ func TestAccContainerCluster_withGatewayApiConfig(t *testing.T) {
 		CheckDestroy: testAccCheckContainerClusterDestroyProducer(t),
 		Steps: []resource.TestStep{
 			{
+				Config:      testAccContainerCluster_withGatewayApiConfig(clusterName, "CANARY"),
+				ExpectError: regexp.MustCompile(`expected gateway_api_config\.0\.channel to be one of \[CHANNEL_DISABLED CHANNEL_STANDARD\], got CANARY`),
+			},
+			{
 				Config: testAccContainerCluster_withGatewayApiConfig(clusterName, "CHANNEL_DISABLED"),
 			},
 			{
@@ -3436,22 +3448,6 @@ func TestAccContainerCluster_withGatewayApiConfig(t *testing.T) {
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"min_master_version"},
-			},
-		},
-	})
-}
-
-func TestAccContainerCluster_withInvalidGatewayApiConfigChannel(t *testing.T) {
-	t.Parallel()
-	clusterName := fmt.Sprintf("tf-test-cluster-%s", randString(t, 10))
-	vcrTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckContainerClusterDestroyProducer(t),
-		Steps: []resource.TestStep{
-			{
-				Config:      testAccContainerCluster_withGatewayApiConfig(clusterName, "CANARY"),
-				ExpectError: regexp.MustCompile(`expected gateway_api_config\.0\.channel to be one of \[CHANNEL_DISABLED CHANNEL_STANDARD\], got CANARY`),
 			},
 		},
 	})
@@ -4269,6 +4265,10 @@ func TestAccContainerCluster_withPrivateEndpointSubnetwork(t *testing.T) {
 
 func testAccContainerCluster_withPrivateEndpointSubnetwork(containerNetName, clusterName, s1Name, s1Cidr, s2Name, s2Cidr string) string {
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_compute_network" "container_network" {
   name                    = "%s"
   auto_create_subnetworks = false
@@ -4293,7 +4293,7 @@ resource "google_compute_subnetwork" "container_subnetwork2" {
 resource "google_container_cluster" "with_private_endpoint_subnetwork" {
   name               = "%s"
   location           = "us-central1-a"
-  min_master_version = "1.23"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
   initial_node_count = 1
 
   network    = google_compute_network.container_network.name
@@ -4347,13 +4347,44 @@ func TestAccContainerCluster_withEnablePrivateEndpointToggle(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_failedCreation(t *testing.T) {
+	// Test that in a scenario where the cluster fails to create, a subsequent apply will delete the resource.
+	skipIfVcr(t)
+	t.Parallel()
+
+	clusterName := fmt.Sprintf("tf-test-cluster-%s", randString(t, 10))
+
+	project := BootstrapProject(t, "tf-fail-cluster-test", getTestBillingAccountFromEnv(t), []string{"container.googleapis.com"})
+	removeContainerServiceAgentRoleFromContainerEngineRobot(t, project)
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccContainerCluster_failedCreation(clusterName, project.ProjectId),
+				ExpectError: regexp.MustCompile("timeout while waiting for state to become 'DONE'"),
+			},
+			{
+				Config:      testAccContainerCluster_failedCreation_update(clusterName, project.ProjectId),
+				ExpectError: regexp.MustCompile("Failed to create cluster"),
+				Check:       testAccCheckContainerClusterDestroyProducer(t),
+			},
+		},
+	})
+}
+
 func testAccContainerCluster_withEnablePrivateEndpoint(clusterName string, flag string) string {
 
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_enable_private_endpoint" {
   name               = "%s"
   location           = "us-central1-a"
-  min_master_version = "1.23"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
   initial_node_count = 1
 
   master_authorized_networks_config {
@@ -4370,10 +4401,14 @@ resource "google_container_cluster" "with_enable_private_endpoint" {
 func testAccContainerCluster_withoutEnablePrivateEndpoint(clusterName string) string {
 
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_enable_private_endpoint" {
   name               = "%s"
   location           = "us-central1-a"
-  min_master_version = "1.23"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
   initial_node_count = 1
 
   master_authorized_networks_config {
@@ -5649,10 +5684,14 @@ resource "google_container_cluster" "with_node_pool" {
 
 func testAccContainerRegionalCluster_withNodePoolCIA(cluster, np string) string {
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_node_pool" {
   name     = "%s"
   location = "us-central1"
-  min_master_version = "1.24"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
 
   node_pool {
     name               = "%s"
@@ -5669,10 +5708,14 @@ resource "google_container_cluster" "with_node_pool" {
 
 func testAccContainerRegionalClusterUpdate_withNodePoolCIA(cluster, np string) string {
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_node_pool" {
   name     = "%s"
   location = "us-central1"
-  min_master_version = "1.24"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
 
   node_pool {
     name               = "%s"
@@ -5689,10 +5732,14 @@ resource "google_container_cluster" "with_node_pool" {
 
 func testAccContainerRegionalCluster_withNodePoolBasic(cluster, nodePool string) string {
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_node_pool" {
   name     = "%s"
   location = "us-central1"
-  min_master_version = "1.24"
+  min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
 
   node_pool {
     name               = "%s"
@@ -6895,11 +6942,15 @@ resource "google_container_cluster" "with_dns_config" {
 
 func testAccContainerCluster_withGatewayApiConfig(clusterName string, gatewayApiChannel string) string {
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "primary" {
 	name               = "%s"
 	location           = "us-central1-f"
 	initial_node_count = 1
-	min_master_version = "1.24"
+	min_master_version = data.google_container_engine_versions.uscentral1a.release_channel_latest_version["STABLE"]
 	gateway_api_config {
 		channel = "%s"
 	}
@@ -6978,24 +7029,28 @@ resource "google_container_cluster" "primary" {
 `, name)
 }
 
-func testAccContainerCluster_basic_1_23_8(name string) string {
+func testAccContainerCluster_basic_1_23_16(name string) string {
 	return fmt.Sprintf(`
 resource "google_container_cluster" "primary" {
   name               = "%s"
   location           = "us-central1-a"
   initial_node_count = 1
-  min_master_version = "1.23.8-gke.1900"
+  min_master_version = "1.23.16-gke.200"
 }
 `, name)
 }
 
 func testAccContainerCluster_withMonitoringConfigEnabled(name string) string {
 	return fmt.Sprintf(`
+data "google_container_engine_versions" "uscentral1a" {
+  location = "us-central1-a"
+}
+
 resource "google_container_cluster" "primary" {
   name               = "%s"
   location           = "us-central1-a"
   initial_node_count = 1
-  min_master_version = "1.23.8-gke.1900"
+  min_master_version = "1.23.16-gke.200"
   monitoring_config {
       enable_components = [ "SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER" ]
   }
@@ -7022,7 +7077,7 @@ resource "google_container_cluster" "primary" {
   name               = "%s"
   location           = "us-central1-a"
   initial_node_count = 1
-	min_master_version = "1.23.8-gke.1900"
+  min_master_version = "1.23.16-gke.200"
   monitoring_config {
          enable_components = [ "SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER", "WORKLOADS" ]
   }
@@ -7036,7 +7091,7 @@ resource "google_container_cluster" "primary" {
   name               = "%s"
   location           = "us-central1-a"
   initial_node_count = 1
-	min_master_version = "1.23.8-gke.1900"
+  min_master_version = "1.23.16-gke.200"
   monitoring_config {
          enable_components = [ "SYSTEM_COMPONENTS", "APISERVER", "CONTROLLER_MANAGER", "SCHEDULER" ]
          managed_prometheus {
@@ -7053,7 +7108,7 @@ resource "google_container_cluster" "primary" {
   name               = "%s"
   location           = "us-central1-a"
   initial_node_count = 1
-	min_master_version = "1.23.8-gke.1900"
+  min_master_version = "1.23.16-gke.200"
   monitoring_config {
 	     enable_components = []
          managed_prometheus {
@@ -7093,6 +7148,38 @@ resource "google_container_cluster" "primary" {
   }
 }
 `, name, name, name)
+}
+
+func testAccContainerCluster_failedCreation(cluster, project string) string {
+	return fmt.Sprintf(`
+resource "google_container_cluster" "primary" {
+  name               = "%s"
+  project            = "%s"
+  location           = "us-central1-a"
+  initial_node_count = 1
+
+  workload_identity_config {
+    workload_pool = "%s.svc.id.goog"
+  }
+
+  timeouts {
+    create = "40s"
+  }
+}`, cluster, project, project)
+}
+
+func testAccContainerCluster_failedCreation_update(cluster, project string) string {
+	return fmt.Sprintf(`
+resource "google_container_cluster" "primary" {
+  name               = "%s"
+  project            = "%s"
+  location           = "us-central1-a"
+  initial_node_count = 1
+
+  workload_identity_config {
+    workload_pool = "%s.svc.id.goog"
+  }
+}`, cluster, project, project)
 }
 
 func TestValidateNodePoolAutoConfig(t *testing.T) {

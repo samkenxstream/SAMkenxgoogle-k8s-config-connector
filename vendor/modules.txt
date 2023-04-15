@@ -64,6 +64,7 @@ github.com/GoogleCloudPlatform/declarative-resource-client-library/services/goog
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/billingbudgets/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/binaryauthorization
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/cloudbuild/beta
+github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/cloudbuildv2/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/clouddeploy/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/cloudfunctions/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/cloudidentity/beta
@@ -84,7 +85,6 @@ github.com/GoogleCloudPlatform/declarative-resource-client-library/services/goog
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/eventarc/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/filestore/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/firebaserules/beta
-github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/gameservices
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/gkehub/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/iam
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/iap
@@ -96,6 +96,7 @@ github.com/GoogleCloudPlatform/declarative-resource-client-library/services/goog
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/networkconnectivity
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/networkconnectivity/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/networksecurity/beta
+github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/networkservices
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/networkservices/alpha
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/networkservices/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/services/google/orgpolicy/beta
@@ -125,7 +126,6 @@ github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/dlp/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/eventarc/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/filestore/beta
-github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/gameservices
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/gkehub/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/iam
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/iap
@@ -134,6 +134,7 @@ github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/monitoring
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/networkconnectivity
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/networksecurity/beta
+github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/networkservices
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/networkservices/alpha
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/networkservices/beta
 github.com/GoogleCloudPlatform/declarative-resource-client-library/unstructured/google/osconfig/beta
@@ -186,7 +187,7 @@ github.com/PuerkitoBio/urlesc
 # github.com/acomagu/bufpipe v1.0.3
 ## explicit; go 1.12
 github.com/acomagu/bufpipe
-# github.com/agext/levenshtein v1.2.2
+# github.com/agext/levenshtein v1.2.3
 ## explicit
 github.com/agext/levenshtein
 # github.com/apparentlymart/go-cidr v1.1.0
@@ -520,7 +521,7 @@ github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit; go 1.13
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-plugin v1.4.4
+# github.com/hashicorp/go-plugin v1.4.8
 ## explicit; go 1.17
 github.com/hashicorp/go-plugin
 github.com/hashicorp/go-plugin/internal/plugin
@@ -570,7 +571,7 @@ github.com/hashicorp/terraform-exec/tfexec
 # github.com/hashicorp/terraform-json v0.14.0
 ## explicit; go 1.13
 github.com/hashicorp/terraform-json
-# github.com/hashicorp/terraform-plugin-go v0.14.0
+# github.com/hashicorp/terraform-plugin-go v0.14.3
 ## explicit; go 1.18
 github.com/hashicorp/terraform-plugin-go/internal/logging
 github.com/hashicorp/terraform-plugin-go/tfprotov5
@@ -620,7 +621,7 @@ github.com/hashicorp/terraform-plugin-sdk/v2/terraform
 ## explicit; go 1.18
 github.com/hashicorp/terraform-provider-google-beta/google-beta
 github.com/hashicorp/terraform-provider-google-beta/version
-# github.com/hashicorp/terraform-registry-address v0.0.0-20220623143253-7d51757b572c
+# github.com/hashicorp/terraform-registry-address v0.1.0
 ## explicit; go 1.14
 github.com/hashicorp/terraform-registry-address
 # github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
@@ -641,8 +642,6 @@ github.com/inconshreveable/mousetrap
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 ## explicit
 github.com/jbenet/go-context/io
-# github.com/jhump/protoreflect v1.6.1
-## explicit; go 1.14
 # github.com/jonboulle/clockwork v0.2.2
 ## explicit; go 1.13
 github.com/jonboulle/clockwork
@@ -688,8 +687,8 @@ github.com/mitchellh/go-homedir
 # github.com/mitchellh/go-testing-interface v1.14.1
 ## explicit; go 1.14
 github.com/mitchellh/go-testing-interface
-# github.com/mitchellh/go-wordwrap v1.0.0
-## explicit
+# github.com/mitchellh/go-wordwrap v1.0.1
+## explicit; go 1.14
 github.com/mitchellh/go-wordwrap
 # github.com/mitchellh/hashstructure v1.1.0
 ## explicit; go 1.14
@@ -792,6 +791,9 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
+# github.com/tmccombs/hcl2json v0.3.4
+## explicit; go 1.14
+github.com/tmccombs/hcl2json/convert
 # github.com/vmihailenco/msgpack v4.0.4+incompatible
 ## explicit
 github.com/vmihailenco/msgpack
@@ -800,7 +802,7 @@ github.com/vmihailenco/msgpack/codes
 ## explicit; go 1.11
 github.com/vmihailenco/msgpack/v4
 github.com/vmihailenco/msgpack/v4/codes
-# github.com/vmihailenco/tagparser v0.1.1
+# github.com/vmihailenco/tagparser v0.1.2
 ## explicit; go 1.13
 github.com/vmihailenco/tagparser
 github.com/vmihailenco/tagparser/internal

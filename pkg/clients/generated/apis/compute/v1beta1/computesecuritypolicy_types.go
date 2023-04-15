@@ -36,6 +36,10 @@ import (
 )
 
 type SecuritypolicyAdaptiveProtectionConfig struct {
+	/* Auto Deploy Config of this security policy. */
+	// +optional
+	AutoDeployConfig *SecuritypolicyAutoDeployConfig `json:"autoDeployConfig,omitempty"`
+
 	/* Layer 7 DDoS Defense Config of this security policy. */
 	// +optional
 	Layer7DdosDefenseConfig *SecuritypolicyLayer7DdosDefenseConfig `json:"layer7DdosDefenseConfig,omitempty"`
@@ -55,6 +59,24 @@ type SecuritypolicyAdvancedOptionsConfig struct {
 	LogLevel *string `json:"logLevel,omitempty"`
 }
 
+type SecuritypolicyAutoDeployConfig struct {
+	/* Rules are only automatically deployed for alerts on potential attacks with confidence scores greater than this threshold. */
+	// +optional
+	ConfidenceThreshold *float64 `json:"confidenceThreshold,omitempty"`
+
+	/* Google Cloud Armor stops applying the action in the automatically deployed rule to an identified attacker after this duration. The rule continues to operate against new requests. */
+	// +optional
+	ExpirationSec *int `json:"expirationSec,omitempty"`
+
+	/* Rules are only automatically deployed when the estimated impact to baseline traffic from the suggested mitigation is below this threshold. */
+	// +optional
+	ImpactedBaselineThreshold *float64 `json:"impactedBaselineThreshold,omitempty"`
+
+	/* Identifies new attackers only when the load to the backend service that is under attack exceeds this threshold. */
+	// +optional
+	LoadThreshold *float64 `json:"loadThreshold,omitempty"`
+}
+
 type SecuritypolicyBanThreshold struct {
 	/* Number of HTTP(S) requests for calculating the threshold. */
 	Count int `json:"count"`
@@ -66,6 +88,16 @@ type SecuritypolicyBanThreshold struct {
 type SecuritypolicyConfig struct {
 	/* Set of IP addresses or ranges (IPV4 or IPV6) in CIDR notation to match against inbound traffic. There is a limit of 10 IP ranges per rule. A value of '*' matches all IPs (can be used to override the default behavior). */
 	SrcIpRanges []string `json:"srcIpRanges"`
+}
+
+type SecuritypolicyEnforceOnKeyConfigs struct {
+	/* Rate limit key name applicable only for the following key types: HTTP_HEADER -- Name of the HTTP header whose value is taken as the key value. HTTP_COOKIE -- Name of the HTTP cookie whose value is taken as the key value. */
+	// +optional
+	EnforceOnKeyName *string `json:"enforceOnKeyName,omitempty"`
+
+	/* Determines the key to enforce the rate_limit_threshold on. */
+	// +optional
+	EnforceOnKeyType *string `json:"enforceOnKeyType,omitempty"`
 }
 
 type SecuritypolicyExceedRedirectOptions struct {
@@ -162,6 +194,10 @@ type SecuritypolicyRateLimitOptions struct {
 	/* Determines the key to enforce the rateLimitThreshold on. */
 	// +optional
 	EnforceOnKey *string `json:"enforceOnKey,omitempty"`
+
+	/* Immutable. Enforce On Key Config of this security policy. */
+	// +optional
+	EnforceOnKeyConfigs []SecuritypolicyEnforceOnKeyConfigs `json:"enforceOnKeyConfigs,omitempty"`
 
 	/* Rate limit key name applicable only for the following key types: HTTP_HEADER -- Name of the HTTP header whose value is taken as the key value. HTTP_COOKIE -- Name of the HTTP cookie whose value is taken as the key value. */
 	// +optional
@@ -322,11 +358,16 @@ type ComputeSecurityPolicyStatus struct {
 	   ComputeSecurityPolicy's current state. */
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* Fingerprint of this resource. */
-	Fingerprint string `json:"fingerprint,omitempty"`
+	// +optional
+	Fingerprint *string `json:"fingerprint,omitempty"`
+
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
+
 	/* The URI of the created resource. */
-	SelfLink string `json:"selfLink,omitempty"`
+	// +optional
+	SelfLink *string `json:"selfLink,omitempty"`
 }
 
 // +genclient

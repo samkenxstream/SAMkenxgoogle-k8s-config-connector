@@ -154,7 +154,7 @@ func computeRouterNatRulesHash(v interface{}) int {
 	return ruleNumber + descriptionHash + schema.HashString(match) + sourceNatActiveIpHash + sourceNatDrainIpHash
 }
 
-func resourceComputeRouterNat() *schema.Resource {
+func ResourceComputeRouterNat() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeRouterNatCreate,
 		Read:   resourceComputeRouterNatRead,
@@ -320,6 +320,13 @@ is set to MANUAL_ONLY.`,
 				Description: `Timeout (in seconds) for TCP established connections.
 Defaults to 1200s if not set.`,
 				Default: 1200,
+			},
+			"tcp_time_wait_timeout_sec": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Description: `Timeout (in seconds) for TCP connections that are in TIME_WAIT state.
+Defaults to 120s if not set.`,
+				Default: 120,
 			},
 			"tcp_transitory_idle_timeout_sec": {
 				Type:     schema.TypeInt,
@@ -540,6 +547,12 @@ func resourceComputeRouterNatCreate(d *schema.ResourceData, meta interface{}) er
 	} else if v, ok := d.GetOkExists("tcp_transitory_idle_timeout_sec"); !isEmptyValue(reflect.ValueOf(tcpTransitoryIdleTimeoutSecProp)) && (ok || !reflect.DeepEqual(v, tcpTransitoryIdleTimeoutSecProp)) {
 		obj["tcpTransitoryIdleTimeoutSec"] = tcpTransitoryIdleTimeoutSecProp
 	}
+	tcpTimeWaitTimeoutSecProp, err := expandNestedComputeRouterNatTcpTimeWaitTimeoutSec(d.Get("tcp_time_wait_timeout_sec"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("tcp_time_wait_timeout_sec"); !isEmptyValue(reflect.ValueOf(tcpTimeWaitTimeoutSecProp)) && (ok || !reflect.DeepEqual(v, tcpTimeWaitTimeoutSecProp)) {
+		obj["tcpTimeWaitTimeoutSec"] = tcpTimeWaitTimeoutSecProp
+	}
 	logConfigProp, err := expandNestedComputeRouterNatLogConfig(d.Get("log_config"), d, config)
 	if err != nil {
 		return err
@@ -702,6 +715,9 @@ func resourceComputeRouterNatRead(d *schema.ResourceData, meta interface{}) erro
 	if err := d.Set("tcp_transitory_idle_timeout_sec", flattenNestedComputeRouterNatTcpTransitoryIdleTimeoutSec(res["tcpTransitoryIdleTimeoutSec"], d, config)); err != nil {
 		return fmt.Errorf("Error reading RouterNat: %s", err)
 	}
+	if err := d.Set("tcp_time_wait_timeout_sec", flattenNestedComputeRouterNatTcpTimeWaitTimeoutSec(res["tcpTimeWaitTimeoutSec"], d, config)); err != nil {
+		return fmt.Errorf("Error reading RouterNat: %s", err)
+	}
 	if err := d.Set("log_config", flattenNestedComputeRouterNatLogConfig(res["logConfig"], d, config)); err != nil {
 		return fmt.Errorf("Error reading RouterNat: %s", err)
 	}
@@ -802,6 +818,12 @@ func resourceComputeRouterNatUpdate(d *schema.ResourceData, meta interface{}) er
 		return err
 	} else if v, ok := d.GetOkExists("tcp_transitory_idle_timeout_sec"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, tcpTransitoryIdleTimeoutSecProp)) {
 		obj["tcpTransitoryIdleTimeoutSec"] = tcpTransitoryIdleTimeoutSecProp
+	}
+	tcpTimeWaitTimeoutSecProp, err := expandNestedComputeRouterNatTcpTimeWaitTimeoutSec(d.Get("tcp_time_wait_timeout_sec"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("tcp_time_wait_timeout_sec"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, tcpTimeWaitTimeoutSecProp)) {
+		obj["tcpTimeWaitTimeoutSec"] = tcpTimeWaitTimeoutSecProp
 	}
 	logConfigProp, err := expandNestedComputeRouterNatLogConfig(d.Get("log_config"), d, config)
 	if err != nil {
@@ -1104,6 +1126,20 @@ func flattenNestedComputeRouterNatTcpTransitoryIdleTimeoutSec(v interface{}, d *
 	return v
 }
 
+func flattenNestedComputeRouterNatTcpTimeWaitTimeoutSec(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	if v == nil || isEmptyValue(reflect.ValueOf(v)) {
+		return 120
+	}
+	// Handles the string fixed64 format
+	if strVal, ok := v.(string); ok {
+		if intVal, err := stringToFixed64(strVal); err == nil {
+			return intVal
+		} // let terraform core handle it if we can't convert the string to an int.
+	}
+
+	return v
+}
+
 func flattenNestedComputeRouterNatLogConfig(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	if v == nil {
 		return nil
@@ -1332,6 +1368,10 @@ func expandNestedComputeRouterNatTcpEstablishedIdleTimeoutSec(v interface{}, d T
 }
 
 func expandNestedComputeRouterNatTcpTransitoryIdleTimeoutSec(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	return v, nil
+}
+
+func expandNestedComputeRouterNatTcpTimeWaitTimeoutSec(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	return v, nil
 }
 

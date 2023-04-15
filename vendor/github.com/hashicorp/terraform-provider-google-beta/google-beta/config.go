@@ -193,6 +193,7 @@ type Config struct {
 	CertificateManagerBasePath   string
 	CloudAssetBasePath           string
 	CloudBuildBasePath           string
+	Cloudbuildv2BasePath         string
 	CloudFunctionsBasePath       string
 	Cloudfunctions2BasePath      string
 	CloudIdentityBasePath        string
@@ -267,6 +268,7 @@ type Config struct {
 	VertexAIBasePath             string
 	VPCAccessBasePath            string
 	WorkflowsBasePath            string
+	WorkstationsBasePath         string
 
 	CloudBillingBasePath      string
 	ComposerBasePath          string
@@ -278,6 +280,7 @@ type Config struct {
 	CloudIoTBasePath          string
 	ServiceNetworkingBasePath string
 	BigtableAdminBasePath     string
+	TagsLocationBasePath      string
 
 	// dcl
 	ContainerAwsBasePath   string
@@ -308,6 +311,7 @@ const BinaryAuthorizationBasePathKey = "BinaryAuthorization"
 const CertificateManagerBasePathKey = "CertificateManager"
 const CloudAssetBasePathKey = "CloudAsset"
 const CloudBuildBasePathKey = "CloudBuild"
+const Cloudbuildv2BasePathKey = "Cloudbuildv2"
 const CloudFunctionsBasePathKey = "CloudFunctions"
 const Cloudfunctions2BasePathKey = "Cloudfunctions2"
 const CloudIdentityBasePathKey = "CloudIdentity"
@@ -382,6 +386,7 @@ const TPUBasePathKey = "TPU"
 const VertexAIBasePathKey = "VertexAI"
 const VPCAccessBasePathKey = "VPCAccess"
 const WorkflowsBasePathKey = "Workflows"
+const WorkstationsBasePathKey = "Workstations"
 const CloudBillingBasePathKey = "CloudBilling"
 const ComposerBasePathKey = "Composer"
 const ContainerBasePathKey = "Container"
@@ -393,6 +398,7 @@ const ServiceNetworkingBasePathKey = "ServiceNetworking"
 const BigtableAdminBasePathKey = "BigtableAdmin"
 const ContainerAwsBasePathKey = "ContainerAws"
 const ContainerAzureBasePathKey = "ContainerAzure"
+const TagsLocationBasePathKey = "TagsLocation"
 
 // Generated product base paths
 var DefaultBasePaths = map[string]string{
@@ -417,6 +423,7 @@ var DefaultBasePaths = map[string]string{
 	CertificateManagerBasePathKey:   "https://certificatemanager.googleapis.com/v1/",
 	CloudAssetBasePathKey:           "https://cloudasset.googleapis.com/v1/",
 	CloudBuildBasePathKey:           "https://cloudbuild.googleapis.com/v1/",
+	Cloudbuildv2BasePathKey:         "https://cloudbuild.googleapis.com/v2/",
 	CloudFunctionsBasePathKey:       "https://cloudfunctions.googleapis.com/v1/",
 	Cloudfunctions2BasePathKey:      "https://cloudfunctions.googleapis.com/v2beta/",
 	CloudIdentityBasePathKey:        "https://cloudidentity.googleapis.com/v1beta1/",
@@ -491,6 +498,7 @@ var DefaultBasePaths = map[string]string{
 	VertexAIBasePathKey:             "https://{{region}}-aiplatform.googleapis.com/v1beta1/",
 	VPCAccessBasePathKey:            "https://vpcaccess.googleapis.com/v1beta1/",
 	WorkflowsBasePathKey:            "https://workflows.googleapis.com/v1beta/",
+	WorkstationsBasePathKey:         "https://workstations.googleapis.com/v1beta/",
 	CloudBillingBasePathKey:         "https://cloudbilling.googleapis.com/v1/",
 	ComposerBasePathKey:             "https://composer.googleapis.com/v1beta1/",
 	ContainerBasePathKey:            "https://container.googleapis.com/v1beta1/",
@@ -502,6 +510,7 @@ var DefaultBasePaths = map[string]string{
 	BigtableAdminBasePathKey:        "https://bigtableadmin.googleapis.com/v2/",
 	ContainerAwsBasePathKey:         "https://{{location}}-gkemulticloud.googleapis.com/v1/",
 	ContainerAzureBasePathKey:       "https://{{location}}-gkemulticloud.googleapis.com/v1/",
+	TagsLocationBasePathKey:         "https://{{location}}-cloudresourcemanager.googleapis.com/v3/",
 }
 
 var DefaultClientScopes = []string{
@@ -609,7 +618,7 @@ func (c *Config) LoadAndValidate(ctx context.Context) error {
 	return nil
 }
 
-func expandProviderBatchingConfig(v interface{}) (*batchingConfig, error) {
+func ExpandProviderBatchingConfig(v interface{}) (*batchingConfig, error) {
 	config := &batchingConfig{
 		sendAfter:      time.Second * defaultBatchSendIntervalSec,
 		enableBatching: true,
@@ -1317,6 +1326,7 @@ func ConfigureBasePaths(c *Config) {
 	c.CertificateManagerBasePath = DefaultBasePaths[CertificateManagerBasePathKey]
 	c.CloudAssetBasePath = DefaultBasePaths[CloudAssetBasePathKey]
 	c.CloudBuildBasePath = DefaultBasePaths[CloudBuildBasePathKey]
+	c.Cloudbuildv2BasePath = DefaultBasePaths[Cloudbuildv2BasePathKey]
 	c.CloudFunctionsBasePath = DefaultBasePaths[CloudFunctionsBasePathKey]
 	c.Cloudfunctions2BasePath = DefaultBasePaths[Cloudfunctions2BasePathKey]
 	c.CloudIdentityBasePath = DefaultBasePaths[CloudIdentityBasePathKey]
@@ -1391,6 +1401,7 @@ func ConfigureBasePaths(c *Config) {
 	c.VertexAIBasePath = DefaultBasePaths[VertexAIBasePathKey]
 	c.VPCAccessBasePath = DefaultBasePaths[VPCAccessBasePathKey]
 	c.WorkflowsBasePath = DefaultBasePaths[WorkflowsBasePathKey]
+	c.WorkstationsBasePath = DefaultBasePaths[WorkstationsBasePathKey]
 
 	// Handwritten Products / Versioned / Atypical Entries
 	c.CloudBillingBasePath = DefaultBasePaths[CloudBillingBasePathKey]
@@ -1404,4 +1415,5 @@ func ConfigureBasePaths(c *Config) {
 	c.ServiceNetworkingBasePath = DefaultBasePaths[ServiceNetworkingBasePathKey]
 	c.BigQueryBasePath = DefaultBasePaths[BigQueryBasePathKey]
 	c.BigtableAdminBasePath = DefaultBasePaths[BigtableAdminBasePathKey]
+	c.TagsLocationBasePath = DefaultBasePaths[TagsLocationBasePathKey]
 }

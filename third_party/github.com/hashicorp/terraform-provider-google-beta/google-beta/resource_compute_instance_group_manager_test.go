@@ -627,6 +627,10 @@ resource "google_compute_instance_group_manager" "igm-update" {
       doo = "dad"
     }
   }
+
+  instance_lifecycle_policy {
+    force_update_on_repair = "YES"
+  }
 }
 `, template, target, description, igm)
 }
@@ -726,6 +730,10 @@ resource "google_compute_instance_group_manager" "igm-update" {
     labels = {
       foo = "bar"
     }
+  }
+
+  instance_lifecycle_policy {
+    force_update_on_repair = "NO"
   }
 }
 `, template1, target1, target2, template2, description, igm)
@@ -1517,6 +1525,10 @@ resource "google_compute_instance_group_manager" "igm-basic" {
     device_name = "my-stateful-disk"
     delete_rule = "NEVER"
   }
+  stateful_disk {
+    device_name = "my-stateful-disk2"
+    delete_rule = "ON_PERMANENT_INSTANCE_DELETION"
+  }
 
   stateful_internal_ip {
     interface_name = "nic0"
@@ -1603,10 +1615,6 @@ resource "google_compute_instance_group_manager" "igm-basic" {
   base_instance_name = "tf-test-igm-basic"
   zone               = "us-central1-c"
   target_size        = 2
-  stateful_disk {
-    device_name = "my-stateful-disk"
-    delete_rule = "NEVER"
-  }
 }
 `, network, template, target, igm)
 }
@@ -1731,6 +1739,9 @@ resource "google_compute_instance_group_manager" "igm-basic" {
     labels = {
       foo = "bar"
     }
+  }
+  instance_lifecycle_policy {
+    force_update_on_repair = "YES"
   }
   wait_for_instances = true
   wait_for_instances_status = "UPDATED"

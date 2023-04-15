@@ -25,7 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func resourceTagsTagValue() *schema.Resource {
+func ResourceTagsTagValue() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceTagsTagValueCreate,
 		Read:   resourceTagsTagValueRead,
@@ -85,7 +85,6 @@ A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to n
 				Type:     schema.TypeString,
 				Computed: true,
 				Description: `Output only. Update time.
-
 A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z".`,
 			},
 		},

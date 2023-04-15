@@ -41,20 +41,16 @@ type InstanceActiveDirectoryConfig struct {
 }
 
 type InstanceAuthorizedNetworks struct {
-	/*  */
 	// +optional
 	ExpirationTime *string `json:"expirationTime,omitempty"`
 
-	/*  */
 	// +optional
 	Name *string `json:"name,omitempty"`
 
-	/*  */
 	Value string `json:"value"`
 }
 
 type InstanceBackupConfiguration struct {
-	/*  */
 	// +optional
 	BackupRetentionSettings *InstanceBackupRetentionSettings `json:"backupRetentionSettings,omitempty"`
 
@@ -138,19 +134,20 @@ type InstanceIpConfiguration struct {
 	// +optional
 	AllocatedIpRange *string `json:"allocatedIpRange,omitempty"`
 
-	/*  */
 	// +optional
 	AuthorizedNetworks []InstanceAuthorizedNetworks `json:"authorizedNetworks,omitempty"`
+
+	/* Whether Google Cloud services such as BigQuery are allowed to access data in this Cloud SQL instance over a private IP connection. SQLSERVER database type is not supported. */
+	// +optional
+	EnablePrivatePathForGoogleCloudServices *bool `json:"enablePrivatePathForGoogleCloudServices,omitempty"`
 
 	/* Whether this Cloud SQL instance should be assigned a public IPV4 address. At least ipv4_enabled must be enabled or a private_network must be configured. */
 	// +optional
 	Ipv4Enabled *bool `json:"ipv4Enabled,omitempty"`
 
-	/*  */
 	// +optional
 	PrivateNetworkRef *v1alpha1.ResourceRef `json:"privateNetworkRef,omitempty"`
 
-	/*  */
 	// +optional
 	RequireSsl *bool `json:"requireSsl,omitempty"`
 }
@@ -279,7 +276,6 @@ type InstanceSettings struct {
 	// +optional
 	ActivationPolicy *string `json:"activationPolicy,omitempty"`
 
-	/*  */
 	// +optional
 	ActiveDirectoryConfig *InstanceActiveDirectoryConfig `json:"activeDirectoryConfig,omitempty"`
 
@@ -297,7 +293,6 @@ type InstanceSettings struct {
 	// +optional
 	AvailabilityType *string `json:"availabilityType,omitempty"`
 
-	/*  */
 	// +optional
 	BackupConfiguration *InstanceBackupConfiguration `json:"backupConfiguration,omitempty"`
 
@@ -314,7 +309,6 @@ type InstanceSettings struct {
 	// +optional
 	CrashSafeReplication *bool `json:"crashSafeReplication,omitempty"`
 
-	/*  */
 	// +optional
 	DatabaseFlags []InstanceDatabaseFlags `json:"databaseFlags,omitempty"`
 
@@ -322,7 +316,6 @@ type InstanceSettings struct {
 	// +optional
 	DeletionProtectionEnabled *bool `json:"deletionProtectionEnabled,omitempty"`
 
-	/*  */
 	// +optional
 	DenyMaintenancePeriod *InstanceDenyMaintenancePeriod `json:"denyMaintenancePeriod,omitempty"`
 
@@ -338,7 +331,7 @@ type InstanceSettings struct {
 	// +optional
 	DiskSize *int `json:"diskSize,omitempty"`
 
-	/* The type of data disk: PD_SSD or PD_HDD. Defaults to PD_SSD. */
+	/* Immutable. The type of data disk: PD_SSD or PD_HDD. Defaults to PD_SSD. */
 	// +optional
 	DiskType *string `json:"diskType,omitempty"`
 
@@ -346,11 +339,9 @@ type InstanceSettings struct {
 	// +optional
 	InsightsConfig *InstanceInsightsConfig `json:"insightsConfig,omitempty"`
 
-	/*  */
 	// +optional
 	IpConfiguration *InstanceIpConfiguration `json:"ipConfiguration,omitempty"`
 
-	/*  */
 	// +optional
 	LocationPreference *InstanceLocationPreference `json:"locationPreference,omitempty"`
 
@@ -358,7 +349,6 @@ type InstanceSettings struct {
 	// +optional
 	MaintenanceWindow *InstanceMaintenanceWindow `json:"maintenanceWindow,omitempty"`
 
-	/*  */
 	// +optional
 	PasswordValidationPolicy *InstancePasswordValidationPolicy `json:"passwordValidationPolicy,omitempty"`
 
@@ -371,7 +361,6 @@ type InstanceSettings struct {
 	// +optional
 	ReplicationType *string `json:"replicationType,omitempty"`
 
-	/*  */
 	// +optional
 	SqlServerAuditConfig *InstanceSqlServerAuditConfig `json:"sqlServerAuditConfig,omitempty"`
 
@@ -408,15 +397,17 @@ type SQLInstanceSpec struct {
 	// +optional
 	DatabaseVersion *string `json:"databaseVersion,omitempty"`
 
-	/*  */
 	// +optional
 	EncryptionKMSCryptoKeyRef *v1alpha1.ResourceRef `json:"encryptionKMSCryptoKeyRef,omitempty"`
+
+	/* The type of the instance. The valid values are:- 'SQL_INSTANCE_TYPE_UNSPECIFIED', 'CLOUD_SQL_INSTANCE', 'ON_PREMISES_INSTANCE' and 'READ_REPLICA_INSTANCE'. */
+	// +optional
+	InstanceType *string `json:"instanceType,omitempty"`
 
 	/* Maintenance version. */
 	// +optional
 	MaintenanceVersion *string `json:"maintenanceVersion,omitempty"`
 
-	/*  */
 	// +optional
 	MasterInstanceRef *v1alpha1.ResourceRef `json:"masterInstanceRef,omitempty"`
 
@@ -432,7 +423,7 @@ type SQLInstanceSpec struct {
 	// +optional
 	ResourceID *string `json:"resourceID,omitempty"`
 
-	/* Immutable. Initial root password. Required for MS SQL Server. */
+	/* Initial root password. Required for MS SQL Server. */
 	// +optional
 	RootPassword *InstanceRootPassword `json:"rootPassword,omitempty"`
 
@@ -441,31 +432,36 @@ type SQLInstanceSpec struct {
 }
 
 type InstanceIpAddressStatus struct {
-	/*  */
-	IpAddress string `json:"ipAddress,omitempty"`
+	// +optional
+	IpAddress *string `json:"ipAddress,omitempty"`
 
-	/*  */
-	TimeToRetire string `json:"timeToRetire,omitempty"`
+	// +optional
+	TimeToRetire *string `json:"timeToRetire,omitempty"`
 
-	/*  */
-	Type string `json:"type,omitempty"`
+	// +optional
+	Type *string `json:"type,omitempty"`
 }
 
 type InstanceServerCaCertStatus struct {
 	/* The CA Certificate used to connect to the SQL Instance via SSL. */
-	Cert string `json:"cert,omitempty"`
+	// +optional
+	Cert *string `json:"cert,omitempty"`
 
 	/* The CN valid for the CA Cert. */
-	CommonName string `json:"commonName,omitempty"`
+	// +optional
+	CommonName *string `json:"commonName,omitempty"`
 
 	/* Creation time of the CA Cert. */
-	CreateTime string `json:"createTime,omitempty"`
+	// +optional
+	CreateTime *string `json:"createTime,omitempty"`
 
 	/* Expiration time of the CA Cert. */
-	ExpirationTime string `json:"expirationTime,omitempty"`
+	// +optional
+	ExpirationTime *string `json:"expirationTime,omitempty"`
 
 	/* SHA Fingerprint of the CA Cert. */
-	Sha1Fingerprint string `json:"sha1Fingerprint,omitempty"`
+	// +optional
+	Sha1Fingerprint *string `json:"sha1Fingerprint,omitempty"`
 }
 
 type SQLInstanceStatus struct {
@@ -473,27 +469,39 @@ type SQLInstanceStatus struct {
 	   SQLInstance's current state. */
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* Available Maintenance versions. */
+	// +optional
 	AvailableMaintenanceVersions []string `json:"availableMaintenanceVersions,omitempty"`
+
 	/* The connection name of the instance to be used in connection strings. For example, when connecting with Cloud SQL Proxy. */
-	ConnectionName string `json:"connectionName,omitempty"`
-	/*  */
-	FirstIpAddress string `json:"firstIpAddress,omitempty"`
-	/* The type of the instance. The valid values are:- 'SQL_INSTANCE_TYPE_UNSPECIFIED', 'CLOUD_SQL_INSTANCE', 'ON_PREMISES_INSTANCE' and 'READ_REPLICA_INSTANCE'. */
-	InstanceType string `json:"instanceType,omitempty"`
-	/*  */
+	// +optional
+	ConnectionName *string `json:"connectionName,omitempty"`
+
+	// +optional
+	FirstIpAddress *string `json:"firstIpAddress,omitempty"`
+
+	// +optional
 	IpAddress []InstanceIpAddressStatus `json:"ipAddress,omitempty"`
+
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
-	/*  */
-	PrivateIpAddress string `json:"privateIpAddress,omitempty"`
-	/*  */
-	PublicIpAddress string `json:"publicIpAddress,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
+
+	// +optional
+	PrivateIpAddress *string `json:"privateIpAddress,omitempty"`
+
+	// +optional
+	PublicIpAddress *string `json:"publicIpAddress,omitempty"`
+
 	/* The URI of the created resource. */
-	SelfLink string `json:"selfLink,omitempty"`
-	/*  */
-	ServerCaCert InstanceServerCaCertStatus `json:"serverCaCert,omitempty"`
+	// +optional
+	SelfLink *string `json:"selfLink,omitempty"`
+
+	// +optional
+	ServerCaCert *InstanceServerCaCertStatus `json:"serverCaCert,omitempty"`
+
 	/* The service account email address assigned to the instance. */
-	ServiceAccountEmailAddress string `json:"serviceAccountEmailAddress,omitempty"`
+	// +optional
+	ServiceAccountEmailAddress *string `json:"serviceAccountEmailAddress,omitempty"`
 }
 
 // +genclient

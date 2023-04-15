@@ -31,7 +31,7 @@ func certManagerDefaultScopeDiffSuppress(_, old, new string, diff *schema.Resour
 	return false
 }
 
-func resourceCertificateManagerCertificate() *schema.Resource {
+func ResourceCertificateManagerCertificate() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceCertificateManagerCertificateCreate,
 		Read:   resourceCertificateManagerCertificateRead,
@@ -206,6 +206,7 @@ Leaf certificate comes first, followed by intermediate ones if any.`,
 							Type:         schema.TypeString,
 							Optional:     true,
 							Description:  `The private key of the leaf certificate in PEM-encoded form.`,
+							Sensitive:    true,
 							ExactlyOneOf: []string{"self_managed.0.private_key_pem", "self_managed.0.pem_private_key"},
 						},
 						"private_key_pem": {
@@ -218,7 +219,6 @@ Leaf certificate comes first, followed by intermediate ones if any.`,
 						},
 					},
 				},
-				Sensitive:    true,
 				ExactlyOneOf: []string{"self_managed", "managed"},
 			},
 			"project": {

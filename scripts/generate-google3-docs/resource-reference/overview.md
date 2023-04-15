@@ -14,7 +14,7 @@
 <table>
 <thead>
 <tr>
-  <th><strong>{{gcp_name_short}} Resource</strong></th>
+  <th><strong>{{gcp_name_short}} Product</strong></th>
 <th><strong>{{product_name_short}} Resource Name</strong></th>
 </tr>
 </thead>
@@ -393,10 +393,6 @@
   <td><a href="/config-connector/docs/reference/resource-docs/firestore/firestoreindex.md">FirestoreIndex</a></td>
 </tr>
 <tr>
-  <td><a href="/game-servers/docs/">{{game_servers_name}}</a></td>
-  <td><a href="/config-connector/docs/reference/resource-docs/gameservices/gameservicesrealm.md">GameServicesRealm</a></td>
-</tr>
-<tr>
   <td><a class="external" href="https://gkehub.googleapis.com/$discovery/rest?version=v1beta1">GKE Hub</a></td>
   <td><a href="/config-connector/docs/reference/resource-docs/gkehub/gkehubmembership.md">GKEHubMembership</a></td>
 </tr>
@@ -598,7 +594,7 @@
 </tr>
 <tr>
   <td><a href="/pubsub/lite/docs/">{{pubsub_lite_name}}</a></td>
-  <td><a href="/config-connector/docs/reference/resource-docs/pubsub/lite/pubsublitereservation.md">PubSubLiteReservation</a></td>
+  <td><a href="/config-connector/docs/reference/resource-docs/pubsublite/pubsublitereservation.md">PubSubLiteReservation</a></td>
 </tr>
 <tr>
   <td><a href="/memorystore/docs/">{{memorystore_name}}</a></td>
@@ -658,7 +654,7 @@
 </tr>
 <tr>
   <td><a href="/service-usage/docs/">{{usage_name}}</a></td>
-  <td><a href="/config-connector/docs/reference/resource-docs/serviceusage/serviceidentity.md">Service</a></td>
+  <td><a href="/config-connector/docs/reference/resource-docs/serviceusage/serviceidentity.md">ServiceIdentity</a></td>
 </tr>
 <tr>
   <td><a href="/source-repositories/docs/">{{source_repos_name}}</a></td>
@@ -755,6 +751,27 @@
 </tbody>
 </table>
 </devsite-filter>
+</div>
+
+The following resources are not supported in {{product_name_short}} starting from the corresponding version:
+
+<div>
+<table>
+<thead>
+<tr>
+  <th><strong>{{gcp_name_short}} Product</strong></th>
+  <th><strong>{{product_name_short}} Resource Name</strong></th>
+  <th><strong>Deprecation Version</strong></th>
+</tr>
+</thead>
+<tbody class="list">
+<tr>
+  <td>{{game_servers_name}} Realm</td>
+  <td>GameServicesRealm</td>
+  <td>1.101.0</td>
+</tr>
+</tbody>
+</table>
 </div>
 
 {% endblock %}

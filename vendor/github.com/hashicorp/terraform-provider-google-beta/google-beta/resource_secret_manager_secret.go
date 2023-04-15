@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceSecretManagerSecret() *schema.Resource {
+func ResourceSecretManagerSecret() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceSecretManagerSecretCreate,
 		Read:   resourceSecretManagerSecretRead,
@@ -176,7 +176,6 @@ For publication to succeed, the Secret Manager Service Agent service account mus
 						},
 					},
 				},
-				RequiredWith: []string{"rotation"},
 			},
 			"ttl": {
 				Type:     schema.TypeString,

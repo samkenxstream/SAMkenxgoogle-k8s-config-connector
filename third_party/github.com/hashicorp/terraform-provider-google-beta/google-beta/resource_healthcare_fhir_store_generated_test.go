@@ -130,6 +130,25 @@ resource "google_healthcare_fhir_store" "default" {
       }
     }
   }
+
+  depends_on = [
+    google_project_iam_member.bigquery_editor,
+    google_project_iam_member.bigquery_job_user
+  ]
+}
+
+data "google_project" "project" {}
+
+resource "google_project_iam_member" "bigquery_editor" {
+  project = data.google_project.project.project_id
+  role    = "roles/bigquery.dataEditor"
+  member  = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-healthcare.iam.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "bigquery_job_user" {
+  project = data.google_project.project.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-healthcare.iam.gserviceaccount.com"
 }
 
 resource "google_pubsub_topic" "topic" {
@@ -192,17 +211,77 @@ resource "google_healthcare_fhir_store" "default" {
     label1 = "labelvalue1"
   }
 
+  notification_config {
+    pubsub_topic = "${google_pubsub_topic.topic.id}"
+  }
+}
+
+resource "google_pubsub_topic" "topic" {
+  name = "tf-test-fhir-notifications%{random_suffix}"
+}
+
+resource "google_healthcare_dataset" "dataset" {
+  name     = "tf-test-example-dataset%{random_suffix}"
+  location = "us-central1"
+}
+`, context)
+}
+
+func TestAccHealthcareFhirStore_healthcareFhirStoreNotificationConfigsExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"random_suffix": randString(t, 10),
+	}
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProvidersOiCS,
+		CheckDestroy: testAccCheckHealthcareFhirStoreDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccHealthcareFhirStore_healthcareFhirStoreNotificationConfigsExample(context),
+			},
+			{
+				ResourceName:            "google_healthcare_fhir_store.default",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"self_link", "dataset"},
+			},
+		},
+	})
+}
+
+func testAccHealthcareFhirStore_healthcareFhirStoreNotificationConfigsExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_healthcare_fhir_store" "default" {
+  provider = google-beta
+  name     = "tf-test-example-fhir-store%{random_suffix}"
+  dataset  = google_healthcare_dataset.dataset.id
+  version  = "R4"
+
+  enable_update_create          = false
+  disable_referential_integrity = false
+  disable_resource_versioning   = false
+  enable_history_import         = false
+
+  labels = {
+    label1 = "labelvalue1"
+  }
+
   notification_configs {
-    pubsub_topic = "${google_pubsub_topic.topic.id}" 
+    pubsub_topic       = "${google_pubsub_topic.topic.id}"
     send_full_resource = true
   }
 }
 
 resource "google_pubsub_topic" "topic" {
+  provider = google-beta
   name     = "tf-test-fhir-notifications%{random_suffix}"
 }
 
 resource "google_healthcare_dataset" "dataset" {
+  provider = google-beta
   name     = "tf-test-example-dataset%{random_suffix}"
   location = "us-central1"
 }

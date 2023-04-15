@@ -27,6 +27,7 @@ spec:
       idTemplate: "{{project}}/{{service}}"
       idTemplateCanBeUsedToMatchResourceName: true
       resourceAvailableInAssetInventory: true
+      reconciliationIntervalInSeconds: 3600
       metadataMapping:
         name: service
       resourceID:
@@ -63,6 +64,9 @@ spec:
         name: service
       resourceID:
         targetField: service
+      iamMemberReferenceConfig:
+        targetField: email
+        valueTemplate: "serviceAccount:{{value}}"
       resourceReferences:
         - tfField: project
           key: projectRef

@@ -163,7 +163,10 @@ func (r *ReconcileIAMPartialPolicy) Reconcile(ctx context.Context, request recon
 	if requeue {
 		return reconcile.Result{Requeue: true}, nil
 	}
-	jitteredPeriod := jitter.GenerateJitteredReenqueuePeriod(iamv1beta1.IAMPartialPolicyGVK, nil, nil)
+	jitteredPeriod, err := jitter.GenerateJitteredReenqueuePeriod(iamv1beta1.IAMPartialPolicyGVK, nil, nil, policy)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	logger.Info("successfully finished reconcile", "resource", request.NamespacedName, "time to next reconciliation", jitteredPeriod)
 	return reconcile.Result{RequeueAfter: jitteredPeriod}, nil
 }
@@ -222,7 +225,12 @@ func (r *reconcileContext) finalizeDeletion(pp *iamv1beta1.IAMPartialPolicy) (re
 			if !errors.Is(err, kcciamclient.NotFoundError) && !k8s.IsReferenceNotFoundError(err) {
 				if unwrappedErr, ok := lifecyclehandler.CausedByUnresolvableDeps(err); ok {
 					logger.Info(unwrappedErr.Error(), "resource", k8s.GetNamespacedName(pp))
-					return r.handleUnresolvableDeps(pp, unwrappedErr)
+					resource, err := toK8sResource(pp)
+					if err != nil {
+						return false, fmt.Errorf("error converting IAMPartialPolicy to k8s resource while handling unresolvable dependencies event: %w", err)
+					}
+					// Requeue resource for reconciliation with exponential backoff applied
+					return true, r.Reconciler.HandleUnresolvableDeps(r.Ctx, resource, unwrappedErr)
 				}
 				return false, r.handleDeleteFailed(pp, err)
 			}

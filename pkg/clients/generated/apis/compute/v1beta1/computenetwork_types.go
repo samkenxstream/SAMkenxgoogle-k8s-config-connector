@@ -68,8 +68,11 @@ type ComputeNetworkSpec struct {
 	// +optional
 	InternalIpv6Range *string `json:"internalIpv6Range,omitempty"`
 
-	/* Immutable. Maximum Transmission Unit in bytes. The minimum value for this field is 1460
-	and the maximum value is 1500 bytes. */
+	/* Immutable. Maximum Transmission Unit in bytes. The default value is 1460 bytes.
+	The minimum value for this field is 1300 and the maximum value is 8896 bytes (jumbo frames).
+	Note that packets larger than 1500 bytes (standard Ethernet) can be subject to TCP-MSS clamping or dropped
+	with an ICMP 'Fragmentation-Needed' message if the packets are routed to the Internet or other VPCs
+	with varying MTUs. */
 	// +optional
 	Mtu *int `json:"mtu,omitempty"`
 
@@ -92,11 +95,15 @@ type ComputeNetworkStatus struct {
 	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
 	/* The gateway address for default routing out of the network. This value
 	is selected by GCP. */
-	GatewayIpv4 string `json:"gatewayIpv4,omitempty"`
+	// +optional
+	GatewayIpv4 *string `json:"gatewayIpv4,omitempty"`
+
 	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	ObservedGeneration int `json:"observedGeneration,omitempty"`
-	/*  */
-	SelfLink string `json:"selfLink,omitempty"`
+	// +optional
+	ObservedGeneration *int `json:"observedGeneration,omitempty"`
+
+	// +optional
+	SelfLink *string `json:"selfLink,omitempty"`
 }
 
 // +genclient

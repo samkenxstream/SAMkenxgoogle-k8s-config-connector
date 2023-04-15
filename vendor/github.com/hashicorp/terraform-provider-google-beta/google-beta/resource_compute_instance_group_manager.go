@@ -13,7 +13,7 @@ import (
 	compute "google.golang.org/api/compute/v0.beta"
 )
 
-func resourceComputeInstanceGroupManager() *schema.Resource {
+func ResourceComputeInstanceGroupManager() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeInstanceGroupManagerCreate,
 		Read:   resourceComputeInstanceGroupManagerRead,
@@ -274,6 +274,26 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 					},
 				},
 			},
+
+			"instance_lifecycle_policy": {
+				Computed:    true,
+				Type:        schema.TypeList,
+				Optional:    true,
+				MaxItems:    1,
+				Description: `The instance lifecycle policy for this managed instance group.`,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"force_update_on_repair": {
+							Type:         schema.TypeString,
+							Default:      "NO",
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"YES", "NO"}, true),
+							Description:  `Specifies whether to apply the group's latest configuration when repairing a VM. Valid options are: YES, NO. If YES and you updated the group's instance template or per-instance configurations after the VM was created, then these changes are applied when VM is repaired. If NO (default), then updates are applied in accordance with the group's update policy type.`,
+						},
+					},
+				},
+			},
+
 			"all_instances_config": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -511,6 +531,7 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 		AutoHealingPolicies:         expandAutoHealingPolicies(d.Get("auto_healing_policies").([]interface{})),
 		Versions:                    expandVersions(d.Get("version").([]interface{})),
 		UpdatePolicy:                expandUpdatePolicy(d.Get("update_policy").([]interface{})),
+		InstanceLifecyclePolicy:     expandInstanceLifecyclePolicy(d.Get("instance_lifecycle_policy").([]interface{})),
 		AllInstancesConfig:          expandAllInstancesConfig(nil, d.Get("all_instances_config").([]interface{})),
 		StatefulPolicy:              expandStatefulPolicy(d),
 
@@ -729,6 +750,9 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 	if err = d.Set("update_policy", flattenUpdatePolicy(manager.UpdatePolicy)); err != nil {
 		return fmt.Errorf("Error setting update_policy in state: %s", err.Error())
 	}
+	if err = d.Set("instance_lifecycle_policy", flattenInstanceLifecyclePolicy(manager.InstanceLifecyclePolicy)); err != nil {
+		return fmt.Errorf("Error setting instance lifecycle policy in state: %s", err.Error())
+	}
 	if manager.AllInstancesConfig != nil {
 		if err = d.Set("all_instances_config", flattenAllInstancesConfig(manager.AllInstancesConfig)); err != nil {
 			return fmt.Errorf("Error setting all_instances_config in state: %s", err.Error())
@@ -796,6 +820,11 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 
 	if d.HasChange("update_policy") {
 		updatedManager.UpdatePolicy = expandUpdatePolicy(d.Get("update_policy").([]interface{}))
+		change = true
+	}
+
+	if d.HasChange("instance_lifecycle_policy") {
+		updatedManager.InstanceLifecyclePolicy = expandInstanceLifecyclePolicy(d.Get("instance_lifecycle_policy").([]interface{}))
 		change = true
 	}
 
@@ -984,17 +1013,38 @@ func expandAutoHealingPolicies(configured []interface{}) []*compute.InstanceGrou
 }
 
 func expandStatefulPolicy(d *schema.ResourceData) *compute.StatefulPolicy {
+
 	preservedState := &compute.StatefulPolicyPreservedState{}
-	stateful_disks := d.Get("stateful_disk").(*schema.Set).List()
-	disks := make(map[string]compute.StatefulPolicyPreservedStateDiskDevice)
-	for _, raw := range stateful_disks {
-		data := raw.(map[string]interface{})
-		disk := compute.StatefulPolicyPreservedStateDiskDevice{
-			AutoDelete: data["delete_rule"].(string),
+
+	isRemovingAStatefulDisk := false
+	if d.HasChange("stateful_disk") {
+		oldDisks, newDisks := d.GetChange("stateful_disk")
+		preservedState.Disks = expandStatefulDisks(newDisks.(*schema.Set).List())
+		// Remove Disks
+		for _, raw := range oldDisks.(*schema.Set).List() {
+			data := raw.(map[string]interface{})
+			deviceName := data["device_name"].(string)
+			if _, exist := preservedState.Disks[deviceName]; !exist {
+				isRemovingAStatefulDisk = true
+				preservedState.NullFields = append(preservedState.NullFields, "Disks."+deviceName)
+			}
 		}
-		disks[data["device_name"].(string)] = disk
+		preservedState.ForceSendFields = append(preservedState.ForceSendFields, "Disks")
 	}
-	preservedState.Disks = disks
+	if !isRemovingAStatefulDisk {
+		preservedState := &compute.StatefulPolicyPreservedState{}
+		stateful_disks := d.Get("stateful_disk").(*schema.Set).List()
+		disks := make(map[string]compute.StatefulPolicyPreservedStateDiskDevice)
+		for _, raw := range stateful_disks {
+			data := raw.(map[string]interface{})
+			disk := compute.StatefulPolicyPreservedStateDiskDevice{
+				AutoDelete: data["delete_rule"].(string),
+			}
+			disks[data["device_name"].(string)] = disk
+		}
+		preservedState.Disks = disks
+	}
+
 	if d.HasChange("stateful_internal_ip") {
 		oldInternalIps, newInternalIps := d.GetChange("stateful_internal_ip")
 		preservedState.InternalIPs = expandStatefulIps(newInternalIps.([]interface{}))
@@ -1007,8 +1057,8 @@ func expandStatefulPolicy(d *schema.ResourceData) *compute.StatefulPolicy {
 			}
 		}
 		preservedState.ForceSendFields = append(preservedState.ForceSendFields, "InternalIPs")
-
 	}
+
 	if d.HasChange("stateful_external_ip") {
 		oldExternalIps, newExternalIps := d.GetChange("stateful_external_ip")
 		preservedState.ExternalIPs = expandStatefulIps(newExternalIps.([]interface{}))
@@ -1021,13 +1071,25 @@ func expandStatefulPolicy(d *schema.ResourceData) *compute.StatefulPolicy {
 			}
 		}
 		preservedState.ForceSendFields = append(preservedState.ForceSendFields, "ExternalIPs")
-
 	}
 
 	statefulPolicy := &compute.StatefulPolicy{PreservedState: preservedState}
 	statefulPolicy.ForceSendFields = append(statefulPolicy.ForceSendFields, "PreservedState")
 
 	return statefulPolicy
+}
+
+func expandStatefulDisks(statefulDisk []interface{}) map[string]compute.StatefulPolicyPreservedStateDiskDevice {
+	statefulDisksMap := make(map[string]compute.StatefulPolicyPreservedStateDiskDevice)
+
+	for _, raw := range statefulDisk {
+		data := raw.(map[string]interface{})
+		deviceName := compute.StatefulPolicyPreservedStateDiskDevice{
+			AutoDelete: data["delete_rule"].(string),
+		}
+		statefulDisksMap[data["device_name"].(string)] = deviceName
+	}
+	return statefulDisksMap
 }
 
 func expandStatefulIps(statefulIP []interface{}) map[string]compute.StatefulPolicyPreservedStateNetworkIp {
@@ -1074,6 +1136,16 @@ func expandFixedOrPercent(configured []interface{}) *compute.FixedOrPercent {
 		}
 	}
 	return fixedOrPercent
+}
+
+func expandInstanceLifecyclePolicy(configured []interface{}) *compute.InstanceGroupManagerInstanceLifecyclePolicy {
+	instanceLifecyclePolicy := &compute.InstanceGroupManagerInstanceLifecyclePolicy{}
+
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+		instanceLifecyclePolicy.ForceUpdateOnRepair = data["force_update_on_repair"].(string)
+	}
+	return instanceLifecyclePolicy
 }
 
 func expandUpdatePolicy(configured []interface{}) *compute.InstanceGroupManagerUpdatePolicy {
@@ -1210,6 +1282,16 @@ func flattenUpdatePolicy(updatePolicy *compute.InstanceGroupManagerUpdatePolicy)
 		up["type"] = updatePolicy.Type
 		up["replacement_method"] = updatePolicy.ReplacementMethod
 		results = append(results, up)
+	}
+	return results
+}
+
+func flattenInstanceLifecyclePolicy(instanceLifecyclePolicy *compute.InstanceGroupManagerInstanceLifecyclePolicy) []map[string]interface{} {
+	results := []map[string]interface{}{}
+	if instanceLifecyclePolicy != nil {
+		ilp := map[string]interface{}{}
+		ilp["force_update_on_repair"] = instanceLifecyclePolicy.ForceUpdateOnRepair
+		results = append(results, ilp)
 	}
 	return results
 }
